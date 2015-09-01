@@ -1,5 +1,23 @@
 {
   "author": "Paul Loyd <pavelko95@gmail.com>",
   "license": "MIT",
-  "private": true
+  "private": true,
+
+  "devDependencies": {
+    "browserify": "^11.0.1",
+    "watchify": "^3.3.1",
+    "babelify": "^6.3.0"
+  },
+
+  "browserify": {
+    "transform": [
+      ["babelify", {"loose": "all"}]
+    ]
+  },
+
+  "scripts": {
+    "build": "browserify src -d -o bundle.js",
+    "watch": "watchify src -d -o bundle.js",
+    "clean": "rm -f bundle.js"
+  }
 }
