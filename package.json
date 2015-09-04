@@ -6,12 +6,14 @@
   "devDependencies": {
     "browserify": "^11.0.1",
     "watchify": "^3.3.1",
-    "babelify": "^6.3.0"
+    "babelify": "^6.3.0",
+    "browserify-shader": "^0.1.0"
   },
 
   "browserify": {
     "transform": [
-      ["babelify", {"loose": "all"}]
+      ["babelify", {"loose": "all"}],
+      ["browserify-shader", {"parameterize": true}]
     ]
   },
 
