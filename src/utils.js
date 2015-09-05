@@ -80,7 +80,7 @@ function createUniformSetters(gl, program) {
       case gl.FLOAT_MAT4: return v => gl.uniformMatrix4fv(location, false, v);
       case gl.SAMPLER_2D:
       case gl.SAMPLER_CUBE: {
-        let bindPoint = type === gl.SAMPLER_2D ? gl.TEXTURE_2D : gl.TEXTURE_CUBE_MAP;
+        let bindPoint = info.type === gl.SAMPLER_2D ? gl.TEXTURE_2D : gl.TEXTURE_CUBE_MAP;
 
         if (isArray) {
           let units = [];
@@ -106,7 +106,7 @@ function createUniformSetters(gl, program) {
         }
       }
       default:
-        throw new Error(`Unknown type: 0x${type.toString(16)}`);
+        throw new Error(`Unknown type: 0x${info.type.toString(16)}`);
     }
   }
 }
