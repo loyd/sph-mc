@@ -35,13 +35,24 @@ if (!window.requestAnimationFrame) {
   };
 }
 
-let stats = new Stats();
-document.body.appendChild(stats.domElement);
+let logicStats = new Stats();
+let renderStats = new Stats();
 
-requestAnimationFrame(function loop(time) {
-  stats.begin();
-  simulation.step(time);
-  stats.end();
+document.body.appendChild(logicStats.domElement);
+document.body.appendChild(renderStats.domElement);
 
-  requestAnimationFrame(loop, canvas);
+setTimeout(function logicLoop() {
+  setTimeout(logicLoop, 1000*simulation.dt);
+
+  logicStats.begin();
+  simulation.step();
+  logicStats.end();
+}, 1000*simulation.dt);
+
+requestAnimationFrame(function renderLoop() {
+  renderStats.begin();
+  simulation.render();
+  renderStats.end();
+
+  requestAnimationFrame(renderLoop, canvas);
 }, canvas);

@@ -10,6 +10,8 @@ export default class Simulation {
   constructor(gl) {
     this.gl = gl;
 
+    this.dt = 0.01;
+
     this.camera = new Camera;
     this.bbox = new BBox(.5, .5, .5);
 
@@ -57,15 +59,19 @@ export default class Simulation {
     this.camera.setAspect(this.gl.drawingBufferWidth/this.gl.drawingBufferHeight);
   }
 
-  step(timestamp) {
+  step() {
+    this.gl.finish();
+  }
+
+  render() {
     this.camera.update();
 
-    this.drawBBox();
+    this.renderBBox();
 
     this.gl.finish();
   }
 
-  drawBBox() {
+  renderBBox() {
     let [program, buffer] = [this.programs.bbox, this.buffers.bbox];
 
     this.gl.useProgram(program.program);
