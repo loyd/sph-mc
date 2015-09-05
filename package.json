@@ -3,6 +3,11 @@
   "license": "MIT",
   "private": true,
 
+  "dependencies": {
+    "gl-matrix": "^2.3.1",
+    "stats.js": "^1.0.0"
+  },
+
   "devDependencies": {
     "browserify": "^11.0.1",
     "watchify": "^3.3.1",
