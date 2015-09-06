@@ -6,9 +6,9 @@ uniform sampler2D positions;
 varying lowp vec4 color;
 
 void main(void) {
-  vec4 data = texture2D(positions, coord);
+  vec3 position = texture2D(positions, coord).xyz;
   color = vec4(1.);
 
-  gl_Position = viewProj * data;
+  gl_Position = viewProj * vec4(position, 1.);
   gl_PointSize = 1.;
 }
