@@ -148,7 +148,7 @@ export function setBuffersAndAttributes(gl, programInfo, bufferInfo) {
   let {attribs, indices} = bufferInfo;
   let setters = programInfo.attribSetters;
 
-  for (var name in attribs)
+  for (let name in attribs)
     if (name in setters)
       setters[name](attribs[name]);
 
@@ -157,7 +157,7 @@ export function setBuffersAndAttributes(gl, programInfo, bufferInfo) {
 }
 
 export function createBufferInfo(gl, arrays, indices) {
-  var attribs = Object.create(null);
+  let attribs = Object.create(null);
 
   for (let name in arrays) {
     let {data, dims} = arrays[name];
@@ -198,13 +198,11 @@ export function createTextureInfo(gl, size, format, maxFilter, minFilter, type, 
   return {texture, size};
 }
 
-export function createFramebuffer(textureInfo) {
+export function createFramebufferInfo(gl, textureInfo) {
   let {texture, size} = textureInfo;
 
-  let buffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, buffer);
-  buffer.width = size;
-  buffer.height = size;
+  let framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
   let renderbuffer = gl.createRenderbuffer();
   gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
@@ -217,7 +215,52 @@ export function createFramebuffer(textureInfo) {
   gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-  return buffer;
+  checkFramebuffer(gl, framebuffer);
+
+  return {framebuffer, size};
+}
+
+export function createMRTFramebufferInfo(gl, mrt, ...textureInfos) {
+  let size = textureInfos[0].size;
+
+  let framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  let renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+
+  let attach = textureInfos.map((_, i) => mrt[`COLOR_ATTACHMENT${i}_WEBGL`]);
+
+  for (let i = 0; i < attach.length; ++i)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attach[i], gl.TEXTURE_2D, textureInfos[i].texture, 0);
+
+  mrt.drawBuffersWEBGL(attach);
+
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  checkFramebuffer(gl, framebuffer);
+
+  return framebuffer;
+}
+
+function checkFramebuffer(gl, framebuffer) {
+  switch (gl.checkFramebufferStatus(gl.FRAMEBUFFER)) {
+    case gl.FRAMEBUFFER_COMPLETE: break;
+    case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+      throw new Error('Incomplete framebuffer: attachment');
+    case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+      throw new Error('Incomplete framebuffer: missing attachment');
+    case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+      throw new Error('Incomplete framebuffer: incomplete dimensions');
+    case gl.FRAMEBUFFER_UNSUPPORTED:
+      throw new Error('Incomplete framebuffer: unsupported');
+    default:
+      throw new Error(`Incomplete framebuffer: 0x${status.toString(16)}`);
+  }
 }
 
 export function drawBufferInfo(gl, type, bufferInfo, count) {
