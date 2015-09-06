@@ -1,10 +1,10 @@
-attribute vec3 aVertexPosition;
+attribute vec3 position;
 
-uniform mat4 uVPMatrix;
+uniform mat4 viewProj;
 
-varying vec4 vColor;
+varying vec4 color;
 
 void main(void) {
-  vColor = vec4(1.);
-  gl_Position = uVPMatrix * vec4(aVertexPosition, 1.);
+  color = vec4(1.);
+  gl_Position = viewProj * vec4(position, 1.);
 }
