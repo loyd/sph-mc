@@ -20,26 +20,32 @@ export default class Simulation {
     this.camera = new Camera;
     this.bbox = new BBox(.5, .5, .5);
 
-    this.initExtensions();
-    this.initShaders();
-    this.initBuffers();
-    this.initTextures();
+    this.extensions = this.getExtensions();
+    this.programs = this.createPrograms();
+    this.buffers = this.createBuffers();
+    this.textures = this.createTextures();
   }
 
-  initExtensions() {
-    let floatExt = this.gl.getExtension('OES_texture_float');
-    if (floatExt)
-      this.textureFloatType = this.gl.FLOAT;
+  getExtensions() {
+    let float = this.gl.getExtension('OES_texture_float');
+    if (float)
+      float.type = this.gl.FLOAT;
     else {
-      floatExt = this.gl.getExtension('OES_texture_half_float');
-      if (floatExt)
-        this.textureFloatType = floatExt.HALF_FLOAT_OES;
+      float = this.gl.getExtension('OES_texture_half_float');
+      if (float)
+        float.type = float.HALF_FLOAT_OES;
       else
         throw new Error("OES_texture_float and OES_texture_half_float is not available");
     }
+
+    let mrt = this.gl.getExtension('WEBGL_draw_buffers');
+    if (!mrt)
+      throw new Error("WEBGL_draw_buffers is not available");
+
+    return {float, mrt};
   }
 
-  initShaders() {
+  createPrograms() {
     let vs = (tmpl, consts) => utils.compileVertexShader(this.gl, tmpl(consts));
     let fs = (tmpl, consts) => utils.compileFragmentShader(this.gl, tmpl(consts));
     let link = (vs, fs) => utils.createProgramInfo(this.gl, vs, fs);
@@ -49,18 +55,18 @@ export default class Simulation {
 
     let color = fs(colorTmpl);
 
-    this.programs = {
+    return {
       bbox: link(bbox, color),
       particles: link(particles, color)
     };
   }
 
-  initBuffers() {
+  createBuffers() {
     let coords = [];
     for (let i = 0; i < this.particles; ++i)
       coords.push(((i % TEX_SIZE) + .5)/TEX_SIZE, ((i / TEX_SIZE|0) + .5)/TEX_SIZE);
 
-    this.buffers = {
+    return {
       particles: utils.createBufferInfo(this.gl, {
         coord: {dims: 2, data: coords}
       }),
@@ -70,7 +76,7 @@ export default class Simulation {
     };
   }
 
-  initTextures() {
+  createTextures() {
     let {width: bw, height: bh, depth: bd} = this.bbox;
 
     let positions = new Float32Array(3 * TEX_SIZE * TEX_SIZE);
@@ -81,9 +87,10 @@ export default class Simulation {
     }
 
     let gl = this.gl;
-    let {RGB, NEAREST, FLOAT} = gl;
+    let {RGB, NEAREST} = gl;
+    let FLOAT = this.extensions.float.type;
 
-    this.textures = {
+    return {
       positions: utils.createTextureInfo(gl, TEX_SIZE, RGB, NEAREST, NEAREST, FLOAT, positions)
     };
   }
