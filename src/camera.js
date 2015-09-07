@@ -2,12 +2,13 @@ import {vec3, mat4} from 'gl-matrix';
 
 
 export default class Camera {
-  constructor() {
+  constructor(origin) {
+    this.origin = origin;
     this.vAngle = Math.PI/6;
     this.hAngle = Math.PI/5;
     this.fov = Math.PI/4;
     this.aspect = 16/9;
-    this.dist = 1;
+    this.dist = 3;
     this.zoom = 1;
     this.minZoom = .3;
     this.maxZoom = 5;
@@ -98,8 +99,8 @@ export default class Camera {
     let right = [-hCos, 0, hSin];
 
     let up = vec3.cross(right, right, eye);
-    let position = vec3.scale(eye, eye, this.dist);
+    let position = vec3.add(eye, vec3.scale(eye, eye, this.dist), this.origin);
 
-    return mat4.lookAt(position, position, [0, 0, 0], up);
+    return mat4.lookAt(position, position, this.origin, up);
   }
 }
