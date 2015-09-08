@@ -161,7 +161,7 @@ export function createBufferInfo(gl, arrays, indices) {
 
   for (let name in arrays) {
     let {data, dims} = arrays[name];
-    let typed = new Float32Array(data);
+    let typed = data instanceof Float32Array ? data : new Float32Array(data);
 
     attribs[name] = {
       buffer: createBufferFromTypedArray(gl, typed, gl.ARRAY_BUFFER),
@@ -170,7 +170,7 @@ export function createBufferInfo(gl, arrays, indices) {
   }
 
   if (indices) {
-    indices = new Uint16Array(indices);
+    indices = indices instanceof Uint16Array ? indices : new Uint16Array(indices);
     indices = createBufferFromTypedArray(gl, indices, gl.ELEMENT_ARRAY_BUFFER);
   }
 
