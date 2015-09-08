@@ -244,7 +244,7 @@ export function createMRTFramebufferInfo(gl, mrt, ...textureInfos) {
 
   checkFramebuffer(gl, framebuffer);
 
-  return framebuffer;
+  return {framebuffer, size};
 }
 
 function checkFramebuffer(gl, framebuffer) {

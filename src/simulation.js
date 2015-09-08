@@ -2,11 +2,14 @@ import * as utils from './utils';
 import Camera from './camera';
 
 import bboxTmpl from './glsl/bbox.vert';
-import meanFsTmpl from './glsl/mean.frag';
 import meanVsTmpl from './glsl/mean.vert';
+import index2dTmpl from './glsl/index2d.vert';
 import particlesTmpl from './glsl/particles.vert';
 
 import colorTmpl from './glsl/color.frag';
+import meanFsTmpl from './glsl/mean.frag';
+import densityTmpl from './glsl/density.frag';
+import meanDensityTmpl from './glsl/mean_density.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -56,16 +59,27 @@ export default class Simulation {
     let fs = (tmpl, consts) => utils.compileFragmentShader(this.gl, tmpl(consts));
     let link = (vs, fs) => utils.createProgramInfo(this.gl, vs, fs);
 
+    let cellConsts = {
+      zSize: CELL_Z_TEX_SIZE+'.',
+      xySize: CELL_XY_TEX_SIZE+'.',
+      totalSize: CELLS_TEX_SIZE+'.'
+    };
+
     let bbox = vs(bboxTmpl),
-        meanVs = vs(meanVsTmpl, {zSize: CELL_Z_TEX_SIZE+'.', xySize: CELL_XY_TEX_SIZE+'.'}),
+        meanVs = vs(meanVsTmpl, cellConsts),
+        index2d = vs(index2dTmpl),
         particles = vs(particlesTmpl);
 
     let meanFs = fs(meanFsTmpl),
+        density = fs(densityTmpl, cellConsts),
+        meanDensity = fs(meanDensityTmpl),
         color = fs(colorTmpl);
 
     return {
       bbox: link(bbox, color),
       mean: link(meanVs, meanFs),
+      density: link(index2d, density),
+      meanDensity: link(index2d, meanDensity),
       particles: link(particles, color)
     };
   }
@@ -84,7 +98,7 @@ export default class Simulation {
 
     return {
       particles: utils.createBufferInfo(this.gl, {
-        coord: {dims: 2, data: coords}
+        texCoord: {dims: 2, data: coords}
       }),
       bbox: utils.createBufferInfo(this.gl, {
         position: {dims: 3, data: corners}
@@ -117,7 +131,8 @@ export default class Simulation {
     return {
       cells: utils.createMRTFramebufferInfo(this.gl, this.extensions.mrt,
                                             this.textures.meanPositions,
-                                            this.textures.meanVelDens)
+                                            this.textures.meanVelDens),
+      velDens: utils.createFramebufferInfo(this.gl, this.textures.velDens)
     };
   }
 
@@ -128,30 +143,75 @@ export default class Simulation {
 
   step() {
     this.evaluateMeans();
+    this.evaluateDensities();
+    this.evaluateMeanDensities();
 
     this.gl.finish();
   }
 
   evaluateMeans() {
-    let {gl} = this;
     let [program, buffer] = [this.programs.mean, this.buffers.particles];
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers.cells);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.viewport(0, 0, DATA_TEX_SIZE, DATA_TEX_SIZE);
-    gl.enable(gl.BLEND);
-    gl.blendEquation(gl.FUNC_ADD);
-    gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-    gl.useProgram(program.program);
+    this.gl.useProgram(program.program);
     utils.setUniforms(program, {
       positions: this.textures.positions.texture,
       velDens: this.textures.velDens.texture,
       nCells: Math.ceil(3/(2*this.ratio))
     });
-    utils.setBuffersAndAttributes(gl, program, buffer);
-    utils.drawBufferInfo(gl, gl.POINTS, buffer, this.nParticles);
-    gl.disable(gl.BLEND);
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+
+    this.evaluate(this.framebuffers.cells.framebuffer, true, true);
+  }
+
+  evaluateDensities() {
+    let [program, buffer] = [this.programs.density, this.buffers.particles];
+
+    this.gl.useProgram(program.program);
+    utils.setUniforms(program, {
+      positions: this.textures.positions.texture,
+      meanPositions: this.textures.meanPositions.texture,
+      nCells: Math.ceil(3/(2*this.ratio)),
+      mass: this.mass,
+      ratio2: this.ratio*this.ratio,
+      wDefault: 315/(64*Math.PI * this.ratio**9)
+    });
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+
+    this.evaluate(this.framebuffers.velDens, false, true);
+  }
+
+  evaluateMeanDensities() {
+    let [program, buffer] = [this.programs.meanDensity, this.buffers.particles];
+
+    this.gl.useProgram(program.program);
+    utils.setUniforms(program, {
+      velDens: this.textures.velDens.texture
+    });
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+
+    this.evaluate(this.framebuffers.cells, false, true);
+  }
+
+  evaluate(framebuffer, clear = false, add = false) {
+    let {gl} = this;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer.framebuffer);
+
+    if (clear) {
+      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
+
+    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
+
+    if (add) {
+      gl.enable(gl.BLEND);
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE);
+    }
+
+    gl.drawArrays(gl.POINTS, 0, this.nParticles);
+    if (add) gl.disable (gl.BLEND);
   }
 
   render() {
