@@ -25,7 +25,7 @@ void main(void) {
         vec2 cellCoord = 2. / {{totalSize}} * (cell.xy + {{xySize}}*zCoord + vec2(.5)) - vec2(1.);
 
         vec4 nbPosition = texture2D(meanPositions, cellCoord);
-        if (nbPosition.w > 1.) {
+        if (nbPosition.w >= 1.) {
           vec3 r = position - nbPosition.xyz / nbPosition.w;
           float r2 = dot(r, r);
           float dr = max(ratio2 - r2, 0.);
