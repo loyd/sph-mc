@@ -4,7 +4,7 @@ import Camera from './camera';
 import bboxTmpl from './glsl/bbox.vert';
 import meanVsTmpl from './glsl/mean.vert';
 import index2dTmpl from './glsl/index2d.vert';
-import particlesTmpl from './glsl/particles.vert';
+import particleTmpl from './glsl/particle.vert';
 
 import colorTmpl from './glsl/color.frag';
 import meanFsTmpl from './glsl/mean.frag';
@@ -68,7 +68,7 @@ export default class Simulation {
     let bbox = vs(bboxTmpl),
         meanVs = vs(meanVsTmpl, cellConsts),
         index2d = vs(index2dTmpl),
-        particles = vs(particlesTmpl);
+        particle = vs(particleTmpl);
 
     let meanFs = fs(meanFsTmpl),
         density = fs(densityTmpl, cellConsts),
@@ -80,7 +80,7 @@ export default class Simulation {
       mean: link(meanVs, meanFs),
       density: link(index2d, density),
       meanDensity: link(index2d, meanDensity),
-      particles: link(particles, color)
+      particle: link(particle, color)
     };
   }
 
@@ -236,7 +236,7 @@ export default class Simulation {
   }
 
   renderParticles() {
-    let [program, buffer] = [this.programs.particles, this.buffers.particles];
+    let [program, buffer] = [this.programs.particle, this.buffers.particles];
 
     this.gl.useProgram(program.program);
     utils.setUniforms(program, {
