@@ -10,5 +10,5 @@ void main(void) {
   color = vec4(1.);
 
   gl_Position = viewProj * vec4(position, 1.);
-  gl_PointSize = 1.;
+  gl_PointSize = 2.;
 }

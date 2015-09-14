@@ -26,14 +26,13 @@ export default class Simulation {
     this.nParticles = 50000;
     this.density0 = 998.29;
     this.temperature = 20;
-    this.mass = 1.6;
+    this.mass = 0.002;
     this.deltaT = 0.01;
     this.gravity = -9.81;
     this.viscosity = 3.5;
 
-    this.nCells = 128;
-    this.ratio = 4.5 / this.nCells;
-    this.mass *= this.density0*(4*Math.PI*Math.pow(.1, 3)/3 + 1/3/2/3) / this.nParticles;
+    this.pressureK = 3;
+    this.ratio = 0.0457;
 
     this.camera = new Camera([.5, .5, .5]);
 
@@ -119,10 +118,11 @@ export default class Simulation {
 
   createTextures() {
     let positions = new Float32Array(4 * DATA_TEX_SIZE*DATA_TEX_SIZE);
+    let volume = Math.pow(this.mass * this.nParticles / this.density0, 1/3);
     for (let i = 0, n = 4 * this.nParticles; i < n; i += 4) {
-      positions[ i ] = Math.random()/3;
-      positions[i+1] = 1 - Math.random()/2;
-      positions[i+2] = Math.random()/3;
+      positions[ i ] = Math.random() * volume;
+      positions[i+1] = 1 - Math.random() * volume;
+      positions[i+2] = Math.random() * volume;
     }
 
     let gl = this.gl;
@@ -177,7 +177,7 @@ export default class Simulation {
     utils.setUniforms(program, {
       positions: this.textures.positions.texture,
       velDens: this.textures.velDens.texture,
-      nCells: this.nCells
+      nCells: 3/(2*this.ratio)
     });
 
     this.evaluate(program, this.framebuffers.cells, true, true);
@@ -190,7 +190,7 @@ export default class Simulation {
     utils.setUniforms(program, {
       positions: this.textures.positions.texture,
       meanPositions: this.textures.meanPositions.texture,
-      nCells: this.nCells,
+      nCells: 3/(2*this.ratio),
       mass: this.mass,
       ratio2: this.ratio*this.ratio,
       wDefault: 315/(64*Math.PI * this.ratio**9)
@@ -206,7 +206,7 @@ export default class Simulation {
     utils.setUniforms(program, {
       positions: this.textures.positions.texture,
       velDens: this.textures.velDens.texture,
-      nCells: this.nCells
+      nCells: 3/(2*this.ratio)
     });
 
     this.evaluate(program, this.framebuffers.cells, false, true);
@@ -221,9 +221,9 @@ export default class Simulation {
       velDens: this.textures.velDens.texture,
       meanPositions: this.textures.meanPositions.texture,
       meanVelDens: this.textures.meanVelDens.texture,
-      nCells: this.nCells,
+      nCells: 3/(2*this.ratio),
       ratio: this.ratio,
-      pressureK: 7,
+      pressureK: this.pressureK,
       density0: this.density0,
       viscosity: this.viscosity,
       deltaT: this.deltaT,
