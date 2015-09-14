@@ -1,5 +1,6 @@
 import Stats from 'stats.js';
 
+import GUI from './gui';
 import Simulation from './simulation';
 
 
@@ -7,6 +8,7 @@ let canvas = document.querySelector('#area');
 let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
 let simulation = new Simulation(gl);
+let gui = new GUI(simulation);
 
 window.addEventListener('resize', adjustCanvasSize);
 adjustCanvasSize();
@@ -41,18 +43,28 @@ let renderStats = new Stats();
 document.body.appendChild(logicStats.domElement);
 document.body.appendChild(renderStats.domElement);
 
-setTimeout(function logicLoop() {
-  setTimeout(logicLoop, 1000*simulation.dt);
+//setTimeout(function logicLoop() {
+  //setTimeout(logicLoop, 1000*simulation.dt);
 
-  logicStats.begin();
-  simulation.step();
-  logicStats.end();
-}, 1000*simulation.dt);
+  //logicStats.begin();
+  //simulation.step();
+  //logicStats.end();
+//}, 1000*simulation.dt);
+
+//requestAnimationFrame= function(cb) {
+  //setTimeout(cb, 50);
+//};
 
 requestAnimationFrame(function renderLoop() {
-  renderStats.begin();
-  simulation.render();
-  renderStats.end();
+  if (!document.hidden) {
+    logicStats.begin();
+    simulation.step();
+    logicStats.end();
+
+    renderStats.begin();
+    simulation.render();
+    renderStats.end();
+  }
 
   requestAnimationFrame(renderLoop, canvas);
 }, canvas);

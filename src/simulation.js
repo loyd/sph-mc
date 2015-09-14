@@ -25,9 +25,9 @@ export default class Simulation {
 
     this.nParticles = 50000;
     this.density0 = 998.29;
+    this.temperature = 20;
     this.mass = 1.6;
-    this.dt = 0.01;
-    //this.ratio = 0.0457;
+    this.deltaT = 0.01;
     this.gravity = -9.81;
     this.viscosity = 3.5;
 
@@ -226,7 +226,7 @@ export default class Simulation {
       pressureK: 7,
       density0: this.density0,
       viscosity: this.viscosity,
-      deltaT: this.dt,
+      deltaT: this.deltaT,
       mass: this.mass,
       gravity: this.gravity,
       wPressure: -45/(Math.PI*this.ratio**6),
