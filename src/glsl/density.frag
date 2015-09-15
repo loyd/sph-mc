@@ -24,12 +24,17 @@ void main(void) {
     for (int j = -1; j <= 1; ++j)
       for (int k = -1; k <= 1; ++k) {
         vec3 nbCell = cell + vec3(float(k), float(j), float(i));
-        vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
 
+        if (any(equal(nbCell, vec3(-1.))) || any(equal(nbCell, vec3(nCells))))
+            continue;
+
+        vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
         vec4 nbPosition = texture2D(meanPositions, cellCoord);
 
-        //#FIXME: twice consideration in border case.
-        vec3 r = position - nbPosition.xyz / max(nbPosition.w, 1.);
+        if (nbPosition.w < 1.)
+          continue;
+
+        vec3 r = position - nbPosition.xyz / nbPosition.w;
         float r2 = dot(r, r);
         float dr = max(ratio2 - r2, 0.);
         density += nbPosition.w * dr*dr*dr;

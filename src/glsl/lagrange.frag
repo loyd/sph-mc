@@ -41,12 +41,15 @@ void main(void) {
     for (int j = -1; j <= 1; ++j)
       for (int k = -1; k <= 1; ++k) {
         vec3 nbCell = cell + vec3(float(k), float(j), float(i));
-        vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
 
+        if (any(equal(nbCell, vec3(-1.))) || any(equal(nbCell, vec3(nCells))))
+            continue;
+
+        vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
         piece = texture2D(meanPositions, cellCoord);
         float nbCount = piece.w;
 
-        if (nbCount < 1. || ivec3(i, j, k) == ivec3(0) || any(lessThan(nbCell, vec3(0.))))
+        if (nbCount < 1.)
           continue;
 
         float invNbCount = 1./nbCount;
@@ -62,7 +65,8 @@ void main(void) {
         float nbPressure = max(pressureK * (nbDensity - density0), 0.);
 
         //#TODO: check advanced equation.
-        pressureForce -= nbCount * (nbPressure + pressure) * invNbDensity * diff/distance * dr*dr;
+        if (distance > 0.)
+          pressureForce -= nbCount * (nbPressure + pressure) * invNbDensity * diff/distance * dr*dr;
         viscosityForce += nbCount * (nbVelocity - velocity) * invNbDensity * dr;
       }
   }
