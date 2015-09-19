@@ -13,7 +13,8 @@
     "browserify": "^11.0.1",
     "watchify": "^3.3.1",
     "babelify": "^6.3.0",
-    "browserify-shader": "^0.1.0"
+    "browserify-shader": "^0.1.0",
+    "browser-sync": "^2.9.3"
   },
 
   "browserify": {
@@ -26,6 +27,7 @@
   "scripts": {
     "build": "browserify src -d -o bundle.js",
     "watch": "watchify src -d -o bundle.js",
+    "live": "browser-sync start --files 'index.html, bundle.js' --server",
     "clean": "rm -f bundle.js"
   }
 }
