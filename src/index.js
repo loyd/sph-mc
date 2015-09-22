@@ -1,5 +1,6 @@
 import Stats from 'stats.js';
 
+import './polyfill';
 import GUI from './gui';
 import Simulation from './simulation';
 
@@ -20,22 +21,6 @@ function adjustCanvasSize() {
   simulation.resize();
 }
 
-window.requestAnimationFrame = window.requestAnimationFrame
-                            || window.webkitRequestAnimationFrame
-                            || window.mozRequestAnimationFrame
-                            || window.oRequestAnimationFrame
-                            || window.msRequestAnimationFrame;
-
-if (!window.requestAnimationFrame) {
-  let lastTime = 0;
-  window.requestAnimationFrame = (callback, element) => {
-      let currTime = Date.now();
-      let timeToCall = Math.max(0, 16 - (currTime - lastTime));
-      setTimeout(() => callback(currTime + timeToCall), timeToCall);
-      lastTime = currTime + timeToCall;
-      return id;
-  };
-}
 
 let logicStats = new Stats();
 let renderStats = new Stats();
@@ -43,27 +28,16 @@ let renderStats = new Stats();
 document.body.appendChild(logicStats.domElement);
 document.body.appendChild(renderStats.domElement);
 
-//setTimeout(function logicLoop() {
-  //setTimeout(logicLoop, 1000*simulation.dt);
-
-  //logicStats.begin();
-  //simulation.step();
-  //logicStats.end();
-//}, 1000*simulation.dt);
-
-//requestAnimationFrame= function(cb) {
-  //setTimeout(cb, 50);
-//};
+setTimeout(function logicLoop() {
+  setTimeout(logicLoop, 1000*simulation.deltaT);
+  logicStats.update();
+  simulation.step();
+}, 1000*simulation.deltaT);
 
 requestAnimationFrame(function renderLoop() {
   if (!document.hidden) {
-    logicStats.begin();
-    simulation.step();
-    logicStats.end();
-
-    renderStats.begin();
+    renderStats.update();
     simulation.render();
-    renderStats.end();
   }
 
   requestAnimationFrame(renderLoop, canvas);
