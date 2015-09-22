@@ -33,6 +33,7 @@ export default class Simulation {
 
     this.pressureK = 3;
     this.ratio = 0.0457;
+    this.mode = 'dual';
 
     this.camera = new Camera([.5, .5, .5]);
 
@@ -269,10 +270,31 @@ export default class Simulation {
     this.camera.update();
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
-    this.renderBBox();
-    this.renderParticles();
+    let {drawingBufferWidth: vw, drawingBufferHeight: vh} = this.gl;
+
+    switch (this.mode) {
+      case 'wireframe':
+        this.gl.viewport(0, 0, vw, vh);
+        this.renderBBox();
+        this.renderParticles();
+        break;
+
+      case 'mockup':
+        this.gl.viewport(0, 0, vw, vh);
+        this.renderBBox();
+        break;
+
+      case 'dual':
+        let [hvw, hvh, qvh] = [vw/2, vh/2, vh/4];
+        this.gl.viewport(0, qvh, hvw, hvh);
+        this.renderBBox();
+        this.renderParticles();
+
+        this.gl.viewport(hvw, qvh, hvw, hvh);
+        this.renderBBox();
+        break;
+    }
   }
 
   renderBBox() {

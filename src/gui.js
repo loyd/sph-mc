@@ -20,6 +20,7 @@ export default class GUI {
     sph.add(simulation, 'nParticles', 5000, 250000, 5000);
     sph.add(simulation, 'mass', 0.0005, 0.01, 0.0005);
     sph.add(simulation, 'ratio', 0.02, 0.1, 0.005);
+    sph.add(simulation, 'mode', ['wireframe', 'mockup', 'dual']);
     sph.open();
   }
 }
