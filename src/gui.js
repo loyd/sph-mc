@@ -7,7 +7,7 @@ export default class GUI {
 
     let env = this.env = gui.addFolder('Environment');
     env.add(simulation, 'gravity', -15, -5, 1);
-    env.add(simulation, 'deltaT', 0, 0.02, 0.005);
+    env.add(simulation, 'deltaT', 0.002, 0.02, 0.001);
     env.open();
 
     let fluid = this.fluid = gui.addFolder('Fluid material');

@@ -26,10 +26,10 @@ export default class Simulation {
     this.nParticles = 50000;
     this.density0 = 998.29;
     this.temperature = 20;
-    this.mass = 0.002;
-    this.deltaT = 0.01;
+    this.mass = 0.005;
+    this.deltaT = 0.005;
     this.gravity = -9.81;
-    this.viscosity = 3.5;
+    this.viscosity = 3;
 
     this.pressureK = 3;
     this.ratio = 0.0457;
@@ -166,8 +166,6 @@ export default class Simulation {
     this.evaluateDensities();
     this.evaluateMeanDensities();
     this.evaluateLagrange();
-
-    this.gl.finish();
   }
 
   evaluateMeans() {
@@ -275,8 +273,6 @@ export default class Simulation {
 
     this.renderBBox();
     this.renderParticles();
-
-    this.gl.finish();
   }
 
   renderBBox() {

@@ -28,11 +28,23 @@ let renderStats = new Stats();
 document.body.appendChild(logicStats.domElement);
 document.body.appendChild(renderStats.domElement);
 
-setTimeout(function logicLoop() {
-  setTimeout(logicLoop, 1000*simulation.deltaT);
-  logicStats.update();
-  simulation.step();
-}, 1000*simulation.deltaT);
+let past = performance.now();
+setImmediate(function logicLoop() {
+  let now = performance.now();
+
+  if (now - past >= simulation.deltaT*1000) {
+    if (simulation.deltaT > 0.004)
+      setTimeout(logicLoop, simulation.deltaT);
+    else
+      setImmediate(logicLoop);
+
+    past = now;
+
+    logicStats.update();
+    simulation.step();
+  } else
+    setImmediate(logicLoop);
+});
 
 requestAnimationFrame(function renderLoop() {
   if (!document.hidden) {
