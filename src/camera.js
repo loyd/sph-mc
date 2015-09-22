@@ -2,7 +2,7 @@ import {vec3, mat4} from 'gl-matrix';
 
 
 export default class Camera {
-  constructor(origin) {
+  constructor(observable, origin) {
     this.origin = origin;
     this.vAngle = Math.PI/6;
     this.hAngle = Math.PI/5;
@@ -23,53 +23,49 @@ export default class Camera {
     this.matrix = mat4.create();
     this.update();
 
-    document.addEventListener('mousedown', e => this.onMouseDown(e));
-    document.addEventListener('mousemove', e => this.onMouseMove(e));
-    document.addEventListener('mouseup', e => this.onMouseUp(e));
+    observable.addEventListener('mousedown', e => this.onMouseDown(e));
+    window.addEventListener('mousemove', e => this.onMouseMove(e));
+    window.addEventListener('mouseup', e => this.onMouseUp(e));
 
-    let wheel = 'onwheel' in document ? 'wheel'
-              : 'onmousewheel' in document ? 'mousewheel'
+    let wheel = 'onwheel' in window ? 'wheel'
+              : 'onmousewheel' in window ? 'mousewheel'
               : 'MozMousePixelScroll';
 
-    document.addEventListener(wheel, e => this.onMouseWheel(e));
+    observable.addEventListener(wheel, e => this.onMouseWheel(e));
   }
 
   onMouseDown(e) {
     this.down = true;
     this.marker.x = this.mouse.x = e.clientX;
     this.marker.y = this.mouse.y = e.clientY;
-    e.preventDefault();
   }
 
   onMouseMove(e) {
+    if (!this.down)
+      return;
+
     this.mouse.x = e.clientX;
     this.mouse.y = e.clientY;
 
-    if (this.down) {
-      let dx = this.mouse.x - this.marker.x,
-          dy = this.mouse.y - this.marker.y;
+    let dx = this.mouse.x - this.marker.x,
+        dy = this.mouse.y - this.marker.y;
 
-      this.hAngle -= dx * this.speed;
-      this.vAngle += dy * this.speed;
+    this.hAngle -= dx * this.speed;
+    this.vAngle += dy * this.speed;
 
-      this.marker.x = this.mouse.x;
-      this.marker.y = this.mouse.y;
-      this.dirty = true;
-    }
-
-    e.preventDefault();
+    this.marker.x = this.mouse.x;
+    this.marker.y = this.mouse.y;
+    this.dirty = true;
   }
 
   onMouseUp(e) {
     this.down = false;
-    e.preventDefault();
   }
 
   onMouseWheel(e) {
     let delta = e.deltaY || e.detail || e.wheelDelta;
     this.zoom = Math.max(Math.min(this.zoom * (1 + delta*this.speed), this.maxZoom), this.minZoom);
     this.dirty = true;
-    e.preventDefault();
   }
 
   setAspect(aspect) {

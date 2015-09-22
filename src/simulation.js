@@ -35,7 +35,7 @@ export default class Simulation {
     this.ratio = 0.0457;
     this.mode = 'dual';
 
-    this.camera = new Camera([.5, .5, .5]);
+    this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
     this.extensions = this.getExtensions();
     this.programs = this.createPrograms();
