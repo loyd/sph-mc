@@ -131,12 +131,12 @@ export default class Simulation {
     let FLOAT = this.extensions.float.type;
 
     return {
-      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT, positions),
-      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT)
+      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT, positions),
+      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT)
     };
   }
 
