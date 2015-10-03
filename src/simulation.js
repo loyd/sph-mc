@@ -5,6 +5,7 @@ import bboxTmpl from './glsl/bbox.vert';
 import cellTmpl from './glsl/cell.vert';
 import index2dTmpl from './glsl/index2d.vert';
 import particleTmpl from './glsl/particle.vert';
+import quadTmpl from './glsl/quad.vert';
 
 import colorTmpl from './glsl/color.frag';
 import whiteColorTmpl from './glsl/white_color.frag';
@@ -12,6 +13,7 @@ import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
 import lagrangeTmpl from './glsl/lagrange.frag';
+import nodeTmpl from './glsl/node.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -79,14 +81,16 @@ export default class Simulation {
     let bbox = vs(bboxTmpl),
         cell = vs(cellTmpl, cellConsts),
         index2d = vs(index2dTmpl),
-        particle = vs(particleTmpl);
+        particle = vs(particleTmpl),
+        quad = vs(quadTmpl);
 
     let mean = fs(meanTmpl),
         density = fs(densityTmpl, cellConsts),
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
-        whiteColor = fs(whiteColorTmpl);
+        whiteColor = fs(whiteColorTmpl),
+        node = fs(nodeTmpl, cellConsts);
 
     return {
       mean: link(cell, mean),
@@ -95,7 +99,8 @@ export default class Simulation {
       lagrange: link(index2d, lagrange),
       activity: link(cell, whiteColor),
       bbox: link(bbox, color),
-      particle: link(particle, color)
+      particle: link(particle, color),
+      node: link(quad, node)
     };
   }
 
@@ -111,12 +116,17 @@ export default class Simulation {
       1,1,1, 0,1,1, 0,1,1,  0,0,1, 0,0,0, 0,0,1,  1,0,0, 1,0,1, 1,1,0,  1,1,1, 0,1,0, 0,1,1
     ];
 
+    let quad = [-1, -1, 1, -1, -1, 1, 1, 1];
+
     return {
       particles: utils.createBuffers(this.gl, {
         texCoord: {dims: 2, data: coords}
       }),
       bbox: utils.createBuffers(this.gl, {
         position: {dims: 3, data: corners}
+      }),
+      quad: utils.createBuffers(this.gl, {
+        vertex: {dims: 2, data: quad}
       })
     };
   }
@@ -141,7 +151,8 @@ export default class Simulation {
       _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      activity: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT)
+      activity: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      nodes: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT)
     };
   }
 
@@ -158,7 +169,8 @@ export default class Simulation {
       _lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
                                             this.textures.positions,
                                             this.textures.velDens),
-      activity: utils.createFramebuffer(this.gl, this.textures.activity)
+      activity: utils.createFramebuffer(this.gl, this.textures.activity),
+      nodes: utils.createFramebuffer(this.gl, this.textures.nodes)
     };
   }
 
@@ -287,10 +299,17 @@ export default class Simulation {
 
   generateSurface() {
     this.evaluateActivity();
+    this.evaluateNodes();
   }
 
   evaluateActivity() {
     this.drawParticles(this.programs.activity, this.framebuffers.activity, null, true);
+  }
+
+  evaluateNodes() {
+    this.drawQuad(this.programs.node, this.framebuffers.nodes, {
+      activity: this.textures.activity
+    });
   }
 
   renderSurface() {}
@@ -306,7 +325,7 @@ export default class Simulation {
 
     if (clear) {
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
     gl.viewport(0, 0, framebuffer.size, framebuffer.size);
@@ -319,5 +338,21 @@ export default class Simulation {
 
     gl.drawArrays(gl.POINTS, 0, this.nParticles);
     if (add) gl.disable(gl.BLEND);
+  }
+
+  drawQuad(program, framebuffer, uniforms) {
+    let {gl} = this;
+
+    gl.useProgram(program);
+    utils.setUniforms(program, uniforms);
+    utils.setBuffersAndAttributes(gl, program, this.buffers.quad);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
