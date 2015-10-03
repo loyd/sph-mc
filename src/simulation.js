@@ -175,7 +175,7 @@ export default class Simulation {
   }
 
   evaluateMeans() {
-    this.evaluate(this.programs.mean, this.framebuffers.cells, {
+    this.drawParticles(this.programs.mean, this.framebuffers.cells, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
@@ -183,7 +183,7 @@ export default class Simulation {
   }
 
   evaluateDensities() {
-    this.evaluate(this.programs.density, this.framebuffers.velDens, {
+    this.drawParticles(this.programs.density, this.framebuffers.velDens, {
       positions: this.textures.positions,
       meanPositions: this.textures.meanPositions,
       nCells: 3/(2*this.ratio),
@@ -194,7 +194,7 @@ export default class Simulation {
   }
 
   evaluateMeanDensities() {
-    this.evaluate(this.programs.meanDensity, this.framebuffers.cells, {
+    this.drawParticles(this.programs.meanDensity, this.framebuffers.cells, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
@@ -202,7 +202,7 @@ export default class Simulation {
   }
 
   evaluateLagrange() {
-    this.evaluate(this.programs.lagrange, this.framebuffers.lagrange, {
+    this.drawParticles(this.programs.lagrange, this.framebuffers.lagrange, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       meanPositions: this.textures.meanPositions,
@@ -290,12 +290,12 @@ export default class Simulation {
   }
 
   evaluateActivity() {
-    this.evaluate(this.programs.activity, this.framebuffers.activity, null, true);
+    this.drawParticles(this.programs.activity, this.framebuffers.activity, null, true);
   }
 
   renderSurface() {}
 
-  evaluate(program, framebuffer, uniforms, clear = false, add = false) {
+  drawParticles(program, framebuffer, uniforms, clear = false, add = false) {
     let {gl} = this;
 
     gl.useProgram(program);
