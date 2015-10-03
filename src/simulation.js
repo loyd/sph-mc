@@ -2,12 +2,13 @@ import * as utils from './utils';
 import Camera from './camera';
 
 import bboxTmpl from './glsl/bbox.vert';
-import meanVsTmpl from './glsl/mean.vert';
+import cellTmpl from './glsl/cell.vert';
 import index2dTmpl from './glsl/index2d.vert';
 import particleTmpl from './glsl/particle.vert';
 
 import colorTmpl from './glsl/color.frag';
-import meanFsTmpl from './glsl/mean.frag';
+import whiteColorTmpl from './glsl/white_color.frag';
+import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
 import lagrangeTmpl from './glsl/lagrange.frag';
@@ -75,22 +76,24 @@ export default class Simulation {
     };
 
     let bbox = vs(bboxTmpl),
-        meanVs = vs(meanVsTmpl, cellConsts),
+        cell = vs(cellTmpl, cellConsts),
         index2d = vs(index2dTmpl),
         particle = vs(particleTmpl);
 
-    let meanFs = fs(meanFsTmpl),
+    let mean = fs(meanTmpl),
         density = fs(densityTmpl, cellConsts),
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
-        color = fs(colorTmpl);
+        color = fs(colorTmpl),
+        whiteColor = fs(whiteColorTmpl);
 
     return {
-      bbox: link(bbox, color),
-      mean: link(meanVs, meanFs),
+      mean: link(cell, mean),
       density: link(index2d, density),
-      meanDensity: link(meanVs, meanDensity),
+      meanDensity: link(cell, meanDensity),
       lagrange: link(index2d, lagrange),
+      activity: link(cell, whiteColor),
+      bbox: link(bbox, color),
       particle: link(particle, color)
     };
   }
@@ -131,12 +134,13 @@ export default class Simulation {
     let FLOAT = this.extensions.float.type;
 
     return {
-      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT, positions),
-      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
       meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT, positions),
       _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT)
+      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      activity: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT)
     };
   }
 
@@ -152,7 +156,8 @@ export default class Simulation {
                                            this.textures._velDens),
       _lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
                                             this.textures.positions,
-                                            this.textures.velDens)
+                                            this.textures.velDens),
+      activity: utils.createFramebuffer(this.gl, this.textures.activity)
     };
   }
 
@@ -225,6 +230,9 @@ export default class Simulation {
   render() {
     this.camera.update();
 
+    if (this.mode !== 'wireframe')
+      this.generateSurface();
+
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
 
     let {drawingBufferWidth: vw, drawingBufferHeight: vh} = this.gl;
@@ -239,6 +247,7 @@ export default class Simulation {
       case 'mockup':
         this.gl.viewport(0, 0, vw, vh);
         this.renderBBox();
+        this.renderSurface();
         break;
 
       case 'dual':
@@ -249,6 +258,7 @@ export default class Simulation {
 
         this.gl.viewport(hvw, qvh, hvw, hvh);
         this.renderBBox();
+        this.renderSurface();
         break;
     }
   }
@@ -273,6 +283,16 @@ export default class Simulation {
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
   }
+
+  generateSurface() {
+    this.evaluateActivity();
+  }
+
+  evaluateActivity() {
+    this.evaluate(this.programs.activity, this.framebuffers.activity, null, true); 
+  }
+
+  renderSurface() {}
 
   evaluate(program, framebuffer, uniforms, clear = false, add = false) {
     let {gl} = this;
