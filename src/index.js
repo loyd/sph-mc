@@ -21,36 +21,63 @@ function adjustCanvasSize() {
   simulation.resize();
 }
 
-
 let logicStats = new Stats();
-let renderStats = new Stats();
-
 document.body.appendChild(logicStats.domElement);
+
+let renderStats = new Stats();
 document.body.appendChild(renderStats.domElement);
 
-let past = performance.now();
-setImmediate(function logicLoop() {
-  let now = performance.now();
+//let past = performance.now();
+//setImmediate(function logicLoop() {
+  //let now = performance.now();
 
-  if (now - past >= simulation.deltaT*1000) {
-    if (simulation.deltaT > 0.004)
-      setTimeout(logicLoop, simulation.deltaT);
-    else
-      setImmediate(logicLoop);
+  //if (now - past >= simulation.deltaT*1000) {
+    //if (simulation.deltaT > 0.004)
+      //setTimeout(logicLoop, simulation.deltaT);
+    //else
+      //setImmediate(logicLoop);
 
-    past = now;
+    //past = now;
 
-    logicStats.update();
-    simulation.step();
-  } else
-    setImmediate(logicLoop);
-});
+    //logicStats.update();
+    //simulation.step();
+  //} else
+    //setImmediate(logicLoop);
+//});
 
-requestAnimationFrame(function renderLoop() {
+const DELTA_THRESHOLD = 1000/15;
+
+let past;
+let live = true;
+
+requestAnimationFrame(function loop(now) {
+  if (!past) past = now;
+
   if (!document.hidden) {
-    renderStats.update();
+    let delta = now - past;
+
+    if (delta > DELTA_THRESHOLD && live) {
+      live = false;
+      console.info('Realtime simulation is imposible.');
+    }
+
+    if (live) {
+      let amount = delta / (simulation.deltaT*1000) | 0;
+      now -= delta % (simulation.deltaT*1000);
+
+      for (let i = 0; i < amount; ++i) {
+        simulation.step();
+        logicStats.update();
+      }
+    } else {
+      simulation.step();
+      logicStats.update();
+    }
+
     simulation.render();
+    renderStats.update();
   }
 
-  requestAnimationFrame(renderLoop, canvas);
+  past = now;
+  requestAnimationFrame(loop, canvas);
 }, canvas);
