@@ -14,6 +14,7 @@ export default class GUI {
     fluid.add(simulation, 'temperature', 0, 80, 5);
     fluid.add(simulation, 'density0', 100, 5000);
     fluid.add(simulation, 'viscosity', 1, 50);
+    fluid.add(simulation, 'pressureK', .5, 10, .5);
     fluid.open();
 
     let sph = this.sph = gui.addFolder('SPH');

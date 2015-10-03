@@ -24,15 +24,16 @@ export default class Simulation {
   constructor(gl) {
     this.gl = gl;
 
-    this.nParticles = 50000;
-    this.density0 = 998.29;
-    this.temperature = 20;
-    this.mass = 0.005;
-    this.deltaT = 0.005;
     this.gravity = -9.81;
-    this.viscosity = 3;
+    this.deltaT = 0.005;
 
+    this.temperature = 20;
+    this.density0 = 998.29;
+    this.viscosity = 3;
     this.pressureK = 3;
+
+    this.nParticles = 50000;
+    this.mass = 0.005;
     this.ratio = 0.0457;
     this.mode = 'dual';
 
@@ -289,7 +290,7 @@ export default class Simulation {
   }
 
   evaluateActivity() {
-    this.evaluate(this.programs.activity, this.framebuffers.activity, null, true); 
+    this.evaluate(this.programs.activity, this.framebuffers.activity, null, true);
   }
 
   renderSurface() {}
