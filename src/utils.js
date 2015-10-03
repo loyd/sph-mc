@@ -1,3 +1,6 @@
+import assert from 'assert';
+
+
 export function compileVertexShader(gl, source) {
   return compileShader(gl, source, gl.VERTEX_SHADER);
 }
@@ -17,24 +20,17 @@ function compileShader(gl, source, type) {
   return shader;
 }
 
-export function createProgramInfo(gl, vs, fs) {
-  let program = createProgram(gl, vs, fs);
-
-  return {
-    program,
-    uniformSetters: createUniformSetters(gl, program),
-    attribSetters: createAttributeSetters(gl, program)
-  };
-}
-
-function createProgram(gl, vs, fs) {
+export function createProgram(gl, vs, fs) {
   let program = gl.createProgram();
   gl.attachShader(program, vs);
   gl.attachShader(program, fs);
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-      throw new Error(`Program failed to link: ${gl.getProgramInfoLog(program)}`);
+    throw new Error(`Program failed to link: ${gl.getProgramInfoLog(program)}`);
+
+  program.uniformSetters = createUniformSetters(gl, program);
+  program.attribSetters = createAttributeSetters(gl, program);
 
   return program;
 }
@@ -136,17 +132,17 @@ function createAttributeSetters(gl, program) {
   }
 }
 
-export function setUniforms(programInfo, values) {
-  let setters = programInfo.uniformSetters;
+export function setUniforms(program, values) {
+  let setters = program.uniformSetters;
 
   for (let name in values)
     if (name in setters)
       setters[name](values[name]);
 }
 
-export function setBuffersAndAttributes(gl, programInfo, bufferInfo) {
-  let {attribs, indices} = bufferInfo;
-  let setters = programInfo.attribSetters;
+export function setBuffersAndAttributes(gl, program, buffers) {
+  let {attribs, indices} = buffers;
+  let setters = program.attribSetters;
 
   for (let name in attribs)
     if (name in setters)
@@ -156,7 +152,7 @@ export function setBuffersAndAttributes(gl, programInfo, bufferInfo) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
 }
 
-export function createBufferInfo(gl, arrays, indices) {
+export function createBuffers(gl, arrays, indices) {
   let attribs = Object.create(null);
 
   for (let name in arrays) {
@@ -184,7 +180,7 @@ function createBufferFromTypedArray(gl, array, type) {
     return buffer;
 }
 
-export function createTextureInfo(gl, size, format, maxFilter, minFilter, type, data = null) {
+export function createTexture(gl, size, format, maxFilter, minFilter, type, data = null) {
   let texture = gl.createTexture();
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -195,18 +191,17 @@ export function createTextureInfo(gl, size, format, maxFilter, minFilter, type, 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.bindTexture(gl.TEXTURE_2D, null);
 
-  return {texture, size};
+  texture.size = size;
+  return texture;
 }
 
-export function createFramebufferInfo(gl, textureInfo) {
-  let {texture, size} = textureInfo;
-
+export function createFramebuffer(gl, texture) {
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
   let renderbuffer = gl.createRenderbuffer();
   gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.size, texture.size);
 
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
@@ -217,11 +212,13 @@ export function createFramebufferInfo(gl, textureInfo) {
 
   checkFramebuffer(gl, framebuffer);
 
-  return {framebuffer, size};
+  framebuffer.size = texture.size;
+  return framebuffer;
 }
 
-export function createMRTFramebufferInfo(gl, mrt, ...textureInfos) {
-  let size = textureInfos[0].size;
+export function createMRTFramebuffer(gl, mrt, ...textures) {
+  let size = textures[0].size;
+  assert(textures.every(tex => tex.size === size));
 
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -230,10 +227,10 @@ export function createMRTFramebufferInfo(gl, mrt, ...textureInfos) {
   gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
   gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
 
-  let attach = textureInfos.map((_, i) => mrt[`COLOR_ATTACHMENT${i}_WEBGL`]);
+  let attach = textures.map((_, i) => mrt[`COLOR_ATTACHMENT${i}_WEBGL`]);
 
   for (let i = 0; i < attach.length; ++i)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attach[i], gl.TEXTURE_2D, textureInfos[i].texture, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attach[i], gl.TEXTURE_2D, textures[i], 0);
 
   mrt.drawBuffersWEBGL(attach);
 
@@ -244,7 +241,8 @@ export function createMRTFramebufferInfo(gl, mrt, ...textureInfos) {
 
   checkFramebuffer(gl, framebuffer);
 
-  return {framebuffer, size};
+  framebuffer.size = size;
+  return framebuffer;
 }
 
 function checkFramebuffer(gl, framebuffer) {
@@ -261,11 +259,4 @@ function checkFramebuffer(gl, framebuffer) {
     default:
       throw new Error(`Incomplete framebuffer: 0x${status.toString(16)}`);
   }
-}
-
-export function drawBufferInfo(gl, type, bufferInfo, count) {
-  if (bufferInfo.indices)
-    gl.drawElements(type, count, gl.UNSIGNED_SHORT, 0);
-  else
-    gl.drawArrays(type, 0, count);
 }

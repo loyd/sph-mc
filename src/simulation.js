@@ -66,7 +66,7 @@ export default class Simulation {
   createPrograms() {
     let vs = (tmpl, consts) => utils.compileVertexShader(this.gl, tmpl(consts));
     let fs = (tmpl, consts) => utils.compileFragmentShader(this.gl, tmpl(consts));
-    let link = (vs, fs) => utils.createProgramInfo(this.gl, vs, fs);
+    let link = (vs, fs) => utils.createProgram(this.gl, vs, fs);
 
     let cellConsts = {
       zSize: CELL_Z_TEX_SIZE+'.',
@@ -108,10 +108,10 @@ export default class Simulation {
     ];
 
     return {
-      particles: utils.createBufferInfo(this.gl, {
+      particles: utils.createBuffers(this.gl, {
         texCoord: {dims: 2, data: coords}
       }),
-      bbox: utils.createBufferInfo(this.gl, {
+      bbox: utils.createBuffers(this.gl, {
         position: {dims: 3, data: corners}
       })
     };
@@ -131,29 +131,28 @@ export default class Simulation {
     let FLOAT = this.extensions.float.type;
 
     return {
-      positions: utils.createTextureInfo(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT,
-                                         positions),
-      velDens: utils.createTextureInfo(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      meanPositions: utils.createTextureInfo(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      meanVelDens: utils.createTextureInfo(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      _positions: utils.createTextureInfo(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
-      _velDens: utils.createTextureInfo(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT)
+      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT, positions),
+      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
+      meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
+      meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
+      _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT),
+      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, NEAREST, FLOAT)
     };
   }
 
   createFramebuffers() {
     return {
-      cells: utils.createMRTFramebufferInfo(this.gl, this.extensions.mrt,
-                                            this.textures.meanPositions,
-                                            this.textures.meanVelDens),
-      velDens: utils.createFramebufferInfo(this.gl, this.textures.velDens),
-      _velDens: utils.createFramebufferInfo(this.gl, this.textures._velDens),
-      lagrange: utils.createMRTFramebufferInfo(this.gl, this.extensions.mrt,
-                                               this.textures._positions,
-                                               this.textures._velDens),
-      _lagrange: utils.createMRTFramebufferInfo(this.gl, this.extensions.mrt,
-                                                this.textures.positions,
-                                                this.textures.velDens)
+      cells: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
+                                        this.textures.meanPositions,
+                                        this.textures.meanVelDens),
+      velDens: utils.createFramebuffer(this.gl, this.textures.velDens),
+      _velDens: utils.createFramebuffer(this.gl, this.textures._velDens),
+      lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
+                                           this.textures._positions,
+                                           this.textures._velDens),
+      _lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
+                                            this.textures.positions,
+                                            this.textures.velDens)
     };
   }
 
@@ -172,10 +171,10 @@ export default class Simulation {
   evaluateMeans() {
     let program = this.programs.mean;
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {
-      positions: this.textures.positions.texture,
-      velDens: this.textures.velDens.texture,
+      positions: this.textures.positions,
+      velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
     });
 
@@ -185,10 +184,10 @@ export default class Simulation {
   evaluateDensities() {
     let program = this.programs.density;
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {
-      positions: this.textures.positions.texture,
-      meanPositions: this.textures.meanPositions.texture,
+      positions: this.textures.positions,
+      meanPositions: this.textures.meanPositions,
       nCells: 3/(2*this.ratio),
       mass: this.mass,
       ratio2: this.ratio*this.ratio,
@@ -201,10 +200,10 @@ export default class Simulation {
   evaluateMeanDensities() {
     let program = this.programs.meanDensity;
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {
-      positions: this.textures.positions.texture,
-      velDens: this.textures.velDens.texture,
+      positions: this.textures.positions,
+      velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
     });
 
@@ -214,12 +213,12 @@ export default class Simulation {
   evaluateLagrange() {
     let program = this.programs.lagrange;
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {
-      positions: this.textures.positions.texture,
-      velDens: this.textures.velDens.texture,
-      meanPositions: this.textures.meanPositions.texture,
-      meanVelDens: this.textures.meanVelDens.texture,
+      positions: this.textures.positions,
+      velDens: this.textures.velDens,
+      meanPositions: this.textures.meanPositions,
+      meanVelDens: this.textures.meanVelDens,
       nCells: 3/(2*this.ratio),
       ratio: this.ratio,
       pressureK: this.pressureK,
@@ -247,7 +246,7 @@ export default class Simulation {
     let {gl} = this;
     utils.setBuffersAndAttributes(gl, program, this.buffers.particles);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer.framebuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
     if (clear) {
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -300,21 +299,21 @@ export default class Simulation {
   renderBBox() {
     let [program, buffer] = [this.programs.bbox, this.buffers.bbox];
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {viewProj: this.camera.matrix});
     utils.setBuffersAndAttributes(this.gl, program, buffer);
-    utils.drawBufferInfo(this.gl, this.gl.LINES, buffer, 24);
+    this.gl.drawArrays(this.gl.LINES, 0, 24);
   }
 
   renderParticles() {
     let [program, buffer] = [this.programs.particle, this.buffers.particles];
 
-    this.gl.useProgram(program.program);
+    this.gl.useProgram(program);
     utils.setUniforms(program, {
       viewProj: this.camera.matrix,
-      positions: this.textures.positions.texture
+      positions: this.textures.positions
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
-    utils.drawBufferInfo(this.gl, this.gl.POINTS, buffer, this.nParticles);
+    this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
   }
 }
