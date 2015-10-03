@@ -36,8 +36,10 @@ export default class Camera {
 
   onMouseDown(e) {
     this.down = true;
+    document.body.classList.add('camera');
     this.marker.x = this.mouse.x = e.clientX;
     this.marker.y = this.mouse.y = e.clientY;
+    e.preventDefault();
   }
 
   onMouseMove(e) {
@@ -60,6 +62,7 @@ export default class Camera {
 
   onMouseUp(e) {
     this.down = false;
+    document.body.classList.remove('camera');
   }
 
   onMouseWheel(e) {
