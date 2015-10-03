@@ -169,52 +169,34 @@ export default class Simulation {
   }
 
   evaluateMeans() {
-    let program = this.programs.mean;
-
-    this.gl.useProgram(program);
-    utils.setUniforms(program, {
+    this.evaluate(this.programs.mean, this.framebuffers.cells, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
-    });
-
-    this.evaluate(program, this.framebuffers.cells, true, true);
+    }, true, true);
   }
 
   evaluateDensities() {
-    let program = this.programs.density;
-
-    this.gl.useProgram(program);
-    utils.setUniforms(program, {
+    this.evaluate(this.programs.density, this.framebuffers.velDens, {
       positions: this.textures.positions,
       meanPositions: this.textures.meanPositions,
       nCells: 3/(2*this.ratio),
       mass: this.mass,
       ratio2: this.ratio*this.ratio,
       wDefault: 315/(64*Math.PI * this.ratio**9)
-    });
-
-    this.evaluate(program, this.framebuffers.velDens, false, true);
+    }, false, true);
   }
 
   evaluateMeanDensities() {
-    let program = this.programs.meanDensity;
-
-    this.gl.useProgram(program);
-    utils.setUniforms(program, {
+    this.evaluate(this.programs.meanDensity, this.framebuffers.cells, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       nCells: 3/(2*this.ratio)
-    });
-
-    this.evaluate(program, this.framebuffers.cells, false, true);
+    }, false, true);
   }
 
   evaluateLagrange() {
-    let program = this.programs.lagrange;
-
-    this.gl.useProgram(program);
-    utils.setUniforms(program, {
+    this.evaluate(this.programs.lagrange, this.framebuffers.lagrange, {
       positions: this.textures.positions,
       velDens: this.textures.velDens,
       meanPositions: this.textures.meanPositions,
@@ -231,8 +213,6 @@ export default class Simulation {
       wViscosity: 45/(Math.PI*this.ratio**6)
     });
 
-    this.evaluate(program, this.framebuffers.lagrange);
-
     let t = this.textures;
     [t.positions, t._positions] = [t._positions, t.positions];
     [t.velDens, t._velDens] = [t._velDens, t.velDens];
@@ -240,29 +220,6 @@ export default class Simulation {
     let f = this.framebuffers;
     [f.velDens, f._velDens] = [f._velDens, f.velDens];
     [f.lagrange, f._lagrange] = [f._lagrange, f.lagrange];
-  }
-
-  evaluate(program, framebuffer, clear = false, add = false) {
-    let {gl} = this;
-    utils.setBuffersAndAttributes(gl, program, this.buffers.particles);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-
-    if (clear) {
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    }
-
-    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
-
-    if (add) {
-      gl.enable(gl.BLEND);
-      gl.blendEquation(gl.FUNC_ADD);
-      gl.blendFunc(gl.ONE, gl.ONE);
-    }
-
-    gl.drawArrays(gl.POINTS, 0, this.nParticles);
-    if (add) gl.disable(gl.BLEND);
   }
 
   render() {
@@ -315,5 +272,31 @@ export default class Simulation {
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
+  }
+
+  evaluate(program, framebuffer, uniforms, clear = false, add = false) {
+    let {gl} = this;
+
+    gl.useProgram(program);
+    utils.setUniforms(program, uniforms);
+    utils.setBuffersAndAttributes(gl, program, this.buffers.particles);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+    if (clear) {
+      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
+
+    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
+
+    if (add) {
+      gl.enable(gl.BLEND);
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE);
+    }
+
+    gl.drawArrays(gl.POINTS, 0, this.nParticles);
+    if (add) gl.disable(gl.BLEND);
   }
 }
