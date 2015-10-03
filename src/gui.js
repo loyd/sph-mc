@@ -23,5 +23,9 @@ export default class GUI {
     sph.add(simulation, 'ratio', 0.02, 0.1, 0.005);
     sph.add(simulation, 'mode', ['wireframe', 'mockup', 'dual']);
     sph.open();
+
+    let mc = this.mc = gui.addFolder('MC');
+    mc.add(simulation, 'range', 0.2, 1, .01);
+    mc.open();
   }
 }

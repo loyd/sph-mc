@@ -14,6 +14,7 @@ import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
 import lagrangeTmpl from './glsl/lagrange.frag';
 import nodeTmpl from './glsl/node.frag';
+import relevantTmpl from './glsl/relevant.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -38,6 +39,8 @@ export default class Simulation {
     this.mass = 0.005;
     this.ratio = 0.0457;
     this.mode = 'dual';
+
+    this.range = .4;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
@@ -90,7 +93,8 @@ export default class Simulation {
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
         whiteColor = fs(whiteColorTmpl),
-        node = fs(nodeTmpl, cellConsts);
+        node = fs(nodeTmpl, cellConsts),
+        relevant = fs(relevantTmpl, cellConsts);
 
     return {
       mean: link(cell, mean),
@@ -100,7 +104,8 @@ export default class Simulation {
       activity: link(cell, whiteColor),
       bbox: link(bbox, color),
       particle: link(particle, color),
-      node: link(quad, node)
+      node: link(quad, node),
+      relevant: link(quad, relevant)
     };
   }
 
@@ -300,6 +305,7 @@ export default class Simulation {
   generateSurface() {
     this.evaluateActivity();
     this.evaluateNodes();
+    this.evaluateRelevant();
   }
 
   evaluateActivity() {
@@ -309,6 +315,13 @@ export default class Simulation {
   evaluateNodes() {
     this.drawQuad(this.programs.node, this.framebuffers.nodes, {
       activity: this.textures.activity
+    });
+  }
+
+  evaluateRelevant() {
+    this.drawQuad(this.programs.relevant, this.framebuffers.activity, {
+      nodes: this.textures.nodes,
+      range: this.range
     });
   }
 
