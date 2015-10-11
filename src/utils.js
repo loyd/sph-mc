@@ -199,15 +199,15 @@ export function createFramebuffer(gl, texture) {
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-  let renderbuffer = gl.createRenderbuffer();
-  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.size, texture.size);
+  //let renderbuffer = gl.createRenderbuffer();
+  //gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  //gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, texture.size, texture.size);
 
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+  //gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
 
   gl.bindTexture(gl.TEXTURE_2D, null);
-  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  //gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
   checkFramebuffer(gl, framebuffer);
@@ -223,9 +223,9 @@ export function createMRTFramebuffer(gl, mrt, ...textures) {
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-  let renderbuffer = gl.createRenderbuffer();
-  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+  //let renderbuffer = gl.createRenderbuffer();
+  //gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  //gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
 
   let attach = textures.map((_, i) => mrt[`COLOR_ATTACHMENT${i}_WEBGL`]);
 
@@ -234,9 +234,9 @@ export function createMRTFramebuffer(gl, mrt, ...textures) {
 
   mrt.drawBuffersWEBGL(attach);
 
-  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+  //gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
   gl.bindTexture(gl.TEXTURE_2D, null);
-  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  //gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
   checkFramebuffer(gl, framebuffer);
