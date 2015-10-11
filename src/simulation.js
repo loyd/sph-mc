@@ -123,9 +123,9 @@ export default class Simulation {
 
   createBuffers() {
     let coords = new Float32Array(2 * this.nParticles);
-    for (let i = 0; i < coords.length; i += 2) {
-      coords[ i ] = ((i % DATA_TEX_SIZE) + .5)/DATA_TEX_SIZE;
-      coords[i+1] = ((i / DATA_TEX_SIZE|0) + .5)/DATA_TEX_SIZE;
+    for (let i = 0; i < this.nParticles; ++i) {
+      coords[ i*2 ] = ((i % DATA_TEX_SIZE) + .5)/DATA_TEX_SIZE;
+      coords[i*2+1] = ((i / DATA_TEX_SIZE|0) + .5)/DATA_TEX_SIZE;
     }
 
     let corners = [
