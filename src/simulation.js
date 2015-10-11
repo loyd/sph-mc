@@ -15,6 +15,8 @@ import meanDensityTmpl from './glsl/mean_density.frag';
 import lagrangeTmpl from './glsl/lagrange.frag';
 import nodeTmpl from './glsl/node.frag';
 import relevantTmpl from './glsl/relevant.frag';
+import pyramidTmpl from './glsl/pyramid.frag';
+import packFloatTmpl from './glsl/pack_float.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -22,6 +24,7 @@ const CELL_XY_TEX_SIZE = 128;
 const CELL_Z_TEX_SIZE = 16;
 
 const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
+const CELLS_PYRAMID_LVLS = Math.log2(CELLS_TEX_SIZE);
 
 export default class Simulation {
   constructor(gl) {
@@ -94,7 +97,9 @@ export default class Simulation {
         color = fs(colorTmpl),
         whiteColor = fs(whiteColorTmpl),
         node = fs(nodeTmpl, cellConsts),
-        relevant = fs(relevantTmpl, cellConsts);
+        relevant = fs(relevantTmpl, cellConsts),
+        pyramid = fs(pyramidTmpl),
+        packFloat = fs(packFloatTmpl);
 
     return {
       mean: link(cell, mean),
@@ -105,7 +110,9 @@ export default class Simulation {
       bbox: link(bbox, color),
       particle: link(particle, color),
       node: link(quad, node),
-      relevant: link(quad, relevant)
+      relevant: link(quad, relevant),
+      pyramid: link(quad, pyramid),
+      packFloat: link(quad, packFloat)
     };
   }
 
@@ -157,7 +164,11 @@ export default class Simulation {
       velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       activity: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      nodes: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT)
+      nodes: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      pyramid: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      pyramidLvls: Array(...Array(CELLS_PYRAMID_LVLS)).map((_, i) =>
+        utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
+      totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, FLOAT)
     };
   }
 
@@ -175,7 +186,9 @@ export default class Simulation {
                                             this.textures.positions,
                                             this.textures.velDens),
       activity: utils.createFramebuffer(this.gl, this.textures.activity),
-      nodes: utils.createFramebuffer(this.gl, this.textures.nodes)
+      nodes: utils.createFramebuffer(this.gl, this.textures.nodes),
+      pyramidLvls: this.textures.pyramidLvls.map(tex => utils.createFramebuffer(this.gl, tex)),
+      totalActive: utils.createFramebuffer(this.textures.totalActive)
     };
   }
 
@@ -306,6 +319,7 @@ export default class Simulation {
     this.evaluateActivity();
     this.evaluateNodes();
     this.evaluateRelevant();
+    this.evaluatePyramid();
   }
 
   evaluateActivity() {
@@ -325,6 +339,39 @@ export default class Simulation {
     });
   }
 
+  evaluatePyramid() {
+    let {gl} = this;
+
+    // Hystogram pyramid build-up.
+    let lvl = CELLS_PYRAMID_LVLS;
+    let offset = 0;
+
+    while (lvl --> 0) {
+      this.drawQuad(this.program.pyramid, this.framebuffers.pyramidLvls[lvl], {
+        data: this.textures.pyramidLvls[lvl] || this.textures.activity,
+        size: (1 << lvl + 1) / CELLS_TEX_SIZE
+      }, true);
+
+      gl.bindTexture(gl.TEXTURE_2D, this.textures.pyramid);
+      gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+
+      offset += 1 << lvl;
+    }
+
+    // Read the total active cells.
+    this.drawQuad(this.program.packFloat, this.framebuffers.totalActive, {
+      data: this.textures.pyramidLvls[0],
+      invMax: CELLS_TEX_SIZE ** -2
+    });
+
+    let pixels = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let activeCells = (pixels[0]  + pixels[1]/255 + pixels[2]/65025 + pixels[3]/160581375);
+    activeCells *= (CELLS_TEX_SIZE ** 2)/255;
+    activeCells = Math.round(activeCells);
+  }
+
   renderSurface() {}
 
   drawParticles(program, framebuffer, uniforms, clear = false, add = false) {
@@ -337,7 +384,7 @@ export default class Simulation {
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
     if (clear) {
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
@@ -353,7 +400,7 @@ export default class Simulation {
     if (add) gl.disable(gl.BLEND);
   }
 
-  drawQuad(program, framebuffer, uniforms) {
+  drawQuad(program, framebuffer, uniforms, clear = false) {
     let {gl} = this;
 
     gl.useProgram(program);
@@ -361,6 +408,11 @@ export default class Simulation {
     utils.setBuffersAndAttributes(gl, program, this.buffers.quad);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+    if (clear) {
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
 
     gl.viewport(0, 0, framebuffer.size, framebuffer.size);
     gl.clearColor(0, 0, 0, 0);
