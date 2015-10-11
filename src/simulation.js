@@ -6,6 +6,7 @@ import cellTmpl from './glsl/cell.vert';
 import index2dTmpl from './glsl/index2d.vert';
 import particleTmpl from './glsl/particle.vert';
 import quadTmpl from './glsl/quad.vert';
+import traversalTmpl from './glsl/traversal.vert';
 
 import colorTmpl from './glsl/color.frag';
 import whiteColorTmpl from './glsl/white_color.frag';
@@ -17,6 +18,7 @@ import nodeTmpl from './glsl/node.frag';
 import relevantTmpl from './glsl/relevant.frag';
 import pyramidTmpl from './glsl/pyramid.frag';
 import packFloatTmpl from './glsl/pack_float.frag';
+import compactTmpl from './glsl/compact.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -88,7 +90,8 @@ export default class Simulation {
         cell = vs(cellTmpl, cellConsts),
         index2d = vs(index2dTmpl),
         particle = vs(particleTmpl),
-        quad = vs(quadTmpl);
+        quad = vs(quadTmpl),
+        traversal = vs(traversalTmpl);
 
     let mean = fs(meanTmpl),
         density = fs(densityTmpl, cellConsts),
@@ -99,7 +102,8 @@ export default class Simulation {
         node = fs(nodeTmpl, cellConsts),
         relevant = fs(relevantTmpl, cellConsts),
         pyramid = fs(pyramidTmpl),
-        packFloat = fs(packFloatTmpl);
+        packFloat = fs(packFloatTmpl),
+        compact = fs(compactTmpl, cellConsts);
 
     return {
       mean: link(cell, mean),
@@ -112,7 +116,8 @@ export default class Simulation {
       node: link(quad, node),
       relevant: link(quad, relevant),
       pyramid: link(quad, pyramid),
-      packFloat: link(quad, packFloat)
+      packFloat: link(quad, packFloat),
+      compact: link(traversal, compact)
     };
   }
 
@@ -130,6 +135,15 @@ export default class Simulation {
 
     let quad = [-1, -1, 1, -1, -1, 1, 1, 1];
 
+    let activeCellIndexes = new Float32Array(this.nParticles);
+    let activeCellCoords = new Float32Array(2 * this.nParticles);
+    for (let i = 0; i < this.nParticles; ++i) {
+      activeCellIndexes[i] = i;
+      let j = 2*i;
+      activeCellCoords[ j ] = ((j % CELLS_TEX_SIZE) + .5)/CELLS_TEX_SIZE;
+      activeCellCoords[j+1] = ((j / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
+    }
+
     return {
       particles: utils.createBuffers(this.gl, {
         texCoord: {dims: 2, data: coords}
@@ -139,6 +153,10 @@ export default class Simulation {
       }),
       quad: utils.createBuffers(this.gl, {
         vertex: {dims: 2, data: quad}
+      }),
+      compact: utils.createBuffers(this.gl, {
+        index: {dims: 1, data: activeCellIndexes},
+        texCoord: {dims: 2, data: activeCellCoords}
       })
     };
   }
@@ -188,7 +206,7 @@ export default class Simulation {
       activity: utils.createFramebuffer(this.gl, this.textures.activity),
       nodes: utils.createFramebuffer(this.gl, this.textures.nodes),
       pyramidLvls: this.textures.pyramidLvls.map(tex => utils.createFramebuffer(this.gl, tex)),
-      totalActive: utils.createFramebuffer(this.textures.totalActive)
+      totalActive: utils.createFramebuffer(this.gl, this.textures.totalActive)
     };
   }
 
@@ -319,7 +337,8 @@ export default class Simulation {
     this.evaluateActivity();
     this.evaluateNodes();
     this.evaluateRelevant();
-    this.evaluatePyramid();
+    this.createHystoPyramid();
+    this.compactActive();
   }
 
   evaluateActivity() {
@@ -339,10 +358,9 @@ export default class Simulation {
     });
   }
 
-  evaluatePyramid() {
+  createHystoPyramid() {
     let {gl} = this;
 
-    // Hystogram pyramid build-up.
     let lvl = CELLS_PYRAMID_LVLS;
     let offset = 0;
 
@@ -358,6 +376,10 @@ export default class Simulation {
 
       offset += 1 << lvl;
     }
+  }
+
+  compactActive() {
+    let {gl} = this;
 
     // Read the total active cells.
     this.drawQuad(this.program.packFloat, this.framebuffers.totalActive, {
@@ -370,6 +392,20 @@ export default class Simulation {
     let activeCells = (pixels[0]  + pixels[1]/255 + pixels[2]/65025 + pixels[3]/160581375);
     activeCells *= (CELLS_TEX_SIZE ** 2)/255;
     activeCells = Math.round(activeCells);
+
+    // Parse the pyramid for compaction.
+    gl.useProgram(this.programs.compact);
+    utils.setBuffersAndAttributes(gl, this.programs.compact, this.buffers.compact);
+    utils.setUniforms(this.programs.compact, {
+      base: this.textures.activity,
+      pyramid: this.textures.pyramid
+    });
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers.nodes);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.viewport(0, 0, CELLS_TEX_SIZE, CELLS_TEX_SIZE);
+    gl.drawArrays(gl.POINTS, 0, activeCells);
   }
 
   renderSurface() {}
