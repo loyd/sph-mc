@@ -83,7 +83,8 @@ export default class Simulation {
     let cellConsts = {
       zSize: CELL_Z_TEX_SIZE+'.',
       xySize: CELL_XY_TEX_SIZE+'.',
-      totalSize: CELLS_TEX_SIZE+'.'
+      totalSize: CELLS_TEX_SIZE+'.',
+      pyramidLvls: CELLS_PYRAMID_LVLS+'.'
     };
 
     let bbox = vs(bboxTmpl),
@@ -139,9 +140,8 @@ export default class Simulation {
     let activeCellCoords = new Float32Array(2 * this.nParticles);
     for (let i = 0; i < this.nParticles; ++i) {
       activeCellIndexes[i] = i;
-      let j = 2*i;
-      activeCellCoords[ j ] = ((j % CELLS_TEX_SIZE) + .5)/CELLS_TEX_SIZE;
-      activeCellCoords[j+1] = ((j / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
+      activeCellCoords[ 2*i ] = ((i % CELLS_TEX_SIZE) + .5)/CELLS_TEX_SIZE;
+      activeCellCoords[2*i+1] = ((i / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
     }
 
     return {
