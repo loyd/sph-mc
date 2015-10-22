@@ -88,7 +88,7 @@ function createUniformSetters(gl, program) {
             gl.uniform1iv(location, units);
             for (let i = 0; i < textures.length; ++i) {
               gl.activeTexture(gl.TEXTURE0 + units[i]);
-              gl.bindTexture(bindPoint, texture[i]);
+              gl.bindTexture(bindPoint, textures[i]);
             }
           };
         } else {
