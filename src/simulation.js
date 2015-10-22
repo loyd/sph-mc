@@ -1,5 +1,6 @@
 import * as utils from './utils';
 import Camera from './camera';
+import mcCases from './mc_cases';
 
 import bboxTmpl from './glsl/bbox.vert';
 import cellTmpl from './glsl/cell.vert';
@@ -19,11 +20,13 @@ import relevantTmpl from './glsl/relevant.frag';
 import pyramidTmpl from './glsl/pyramid.frag';
 import packFloatTmpl from './glsl/pack_float.frag';
 import compactTmpl from './glsl/compact.frag';
+import triangleCreatorTmpl from './glsl/triangle_creator.frag';
 
 
 const DATA_TEX_SIZE = 1024;
 const CELL_XY_TEX_SIZE = 128;
 const CELL_Z_TEX_SIZE = 16;
+const TRIANGLES_TEX_SIZE = 1024;
 
 const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
 const CELLS_PYRAMID_LVLS = Math.log2(CELLS_TEX_SIZE);
@@ -104,7 +107,8 @@ export default class Simulation {
         relevant = fs(relevantTmpl, cellConsts),
         pyramid = fs(pyramidTmpl),
         packFloat = fs(packFloatTmpl),
-        compact = fs(compactTmpl, cellConsts);
+        compact = fs(compactTmpl, cellConsts),
+        triangleCreator = fs(triangleCreatorTmpl, cellConsts);
 
     return {
       mean: link(cell, mean),
@@ -118,7 +122,8 @@ export default class Simulation {
       relevant: link(quad, relevant),
       pyramid: link(quad, pyramid),
       packFloat: link(quad, packFloat),
-      compact: link(traversal, compact)
+      compact: link(traversal, compact),
+      triangleCreator: link(traversal, triangleCreator)
     };
   }
 
@@ -144,6 +149,14 @@ export default class Simulation {
       activeCellCoords[2*i+1] = ((i / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
     }
 
+    let triangleIndexes = activeCellIndexes;
+    let triangleCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
+    for (let i = 0; i < TRIANGLES_TEX_SIZE; ++i) {
+      triangleIndexes[i] = i;
+      triangleCoords[ 2*i ] = ((i % TRIANGLES_TEX_SIZE) + .5)/TRIANGLES_TEX_SIZE;
+      triangleCoords[2*i+1] = ((i / TRIANGLES_TEX_SIZE|0) + .5)/TRIANGLES_TEX_SIZE;
+    }
+
     return {
       particles: utils.createBuffers(this.gl, {
         texCoord: {dims: 2, data: coords}
@@ -157,6 +170,10 @@ export default class Simulation {
       compact: utils.createBuffers(this.gl, {
         index: {dims: 1, data: activeCellIndexes},
         texCoord: {dims: 2, data: activeCellCoords}
+      }),
+      creator: utils.createBuffers(this.gl, {
+        index: {dims: 1, data: triangleIndexes},
+        texCoord: {dims: 2, data: triangleCoords}
       })
     };
   }
@@ -169,6 +186,10 @@ export default class Simulation {
       positions[i+1] = 1 - Math.random() * volume;
       positions[i+2] = Math.random() * volume;
     }
+
+    let mcCasesTex = new Float32Array(4*64*64);
+    for (let i = 0; i < mcCases.length; ++i)
+      mcCasesTex[i*4] = mcCases[i];
 
     let gl = this.gl;
     let {RGBA, NEAREST} = gl;
@@ -186,7 +207,10 @@ export default class Simulation {
       pyramid: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
       pyramidLvls: Array(...Array(CELLS_PYRAMID_LVLS)).map((_, i) =>
         utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
-      totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, FLOAT)
+      totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, FLOAT),
+      mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, FLOAT, mcCasesTex),
+      triangles: Array(...Array(6)).map(_ =>
+        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT))
     };
   }
 
@@ -206,7 +230,9 @@ export default class Simulation {
       activity: utils.createFramebuffer(this.gl, this.textures.activity),
       nodes: utils.createFramebuffer(this.gl, this.textures.nodes),
       pyramidLvls: this.textures.pyramidLvls.map(tex => utils.createFramebuffer(this.gl, tex)),
-      totalActive: utils.createFramebuffer(this.gl, this.textures.totalActive)
+      totalActive: utils.createFramebuffer(this.gl, this.textures.totalActive),
+      triangles: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
+                                            ...this.textures.triangles)
     };
   }
 
@@ -338,7 +364,7 @@ export default class Simulation {
     this.evaluateNodes();
     this.evaluateRelevant();
     this.createHystoPyramid();
-    this.compactActive();
+    this.createTriangles();
   }
 
   evaluateActivity() {
@@ -365,47 +391,51 @@ export default class Simulation {
     let offset = 0;
 
     while (lvl --> 0) {
-      this.drawQuad(this.program.pyramid, this.framebuffers.pyramidLvls[lvl], {
-        data: this.textures.pyramidLvls[lvl] || this.textures.activity,
+      this.drawQuad(this.programs.pyramid, this.framebuffers.pyramidLvls[lvl], {
+        data: this.textures.pyramidLvls[lvl + 1] || this.textures.activity,
         size: (1 << lvl + 1) / CELLS_TEX_SIZE
       }, true);
+
+      let size = 1 << lvl;
 
       gl.bindTexture(gl.TEXTURE_2D, this.textures.pyramid);
       gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
       gl.bindTexture(gl.TEXTURE_2D, null);
 
-      offset += 1 << lvl;
+      offset += size;
     }
   }
 
-  compactActive() {
+  createTriangles() {
     let {gl} = this;
 
     // Read the total active cells.
-    this.drawQuad(this.program.packFloat, this.framebuffers.totalActive, {
+    this.drawQuad(this.programs.packFloat, this.framebuffers.totalActive, {
       data: this.textures.pyramidLvls[0],
-      invMax: CELLS_TEX_SIZE ** -2
+      invMax: CELLS_TEX_SIZE**-2
     });
 
     let pixels = new Uint8Array(4);
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     let activeCells = (pixels[0]  + pixels[1]/255 + pixels[2]/65025 + pixels[3]/160581375);
-    activeCells *= (CELLS_TEX_SIZE ** 2)/255;
+    activeCells *= (CELLS_TEX_SIZE**2)/255;
     activeCells = Math.round(activeCells);
 
     // Parse the pyramid for compaction.
-    gl.useProgram(this.programs.compact);
-    utils.setBuffersAndAttributes(gl, this.programs.compact, this.buffers.compact);
-    utils.setUniforms(this.programs.compact, {
+    this.drawPoints(this.programs.compact, this.framebuffers.nodes,
+                    this.buffers.compact, {
       base: this.textures.activity,
       pyramid: this.textures.pyramid
-    });
+    }, activeCells);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers.nodes);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.viewport(0, 0, CELLS_TEX_SIZE, CELLS_TEX_SIZE);
-    gl.drawArrays(gl.POINTS, 0, activeCells);
+    // Create triangles.
+    this.drawPoints(this.programs.triangleCreator, this.framebuffers.triangles,
+                    this.buffers.creator, {
+      range: this.range,
+      potential: this.textures.activity,
+      traversal: this.textures.nodes,
+      mcCases: this.textures.mcCases
+    }, 4*activeCells);
   }
 
   renderSurface() {}
@@ -455,5 +485,20 @@ export default class Simulation {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  drawPoints(program, framebuffer, buffers, uniforms, count) {
+    let {gl} = this;
+
+    gl.useProgram(program);
+    utils.setUniforms(program, uniforms);
+    utils.setBuffersAndAttributes(gl, program, buffers);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, count);
   }
 }
