@@ -31,7 +31,7 @@
   "scripts": {
     "build": "browserify src -d -o bundle.js",
     "watch": "watchify src -d -o bundle.js",
-    "live": "browser-sync start --files 'index.html, bundle.js' --server",
+    "live": "browser-sync start --files 'index.html, bundle.js' --server --no-open",
     "clean": "rm -f bundle.js"
   }
 }
