@@ -8,6 +8,7 @@ import index2dTmpl from './glsl/index2d.vert';
 import particleTmpl from './glsl/particle.vert';
 import quadTmpl from './glsl/quad.vert';
 import traversalTmpl from './glsl/traversal.vert';
+import renderSurfaceVsTmpl from './glsl/render_surface.vert';
 
 import colorTmpl from './glsl/color.frag';
 import whiteColorTmpl from './glsl/white_color.frag';
@@ -21,6 +22,7 @@ import pyramidTmpl from './glsl/pyramid.frag';
 import packFloatTmpl from './glsl/pack_float.frag';
 import compactTmpl from './glsl/compact.frag';
 import triangleCreatorTmpl from './glsl/triangle_creator.frag';
+import renderSurfaceFsTmpl from './glsl/render_surface.frag';
 
 
 const DATA_TEX_SIZE = 1024;
@@ -46,7 +48,7 @@ export default class Simulation {
     this.nParticles = 50000;
     this.mass = 0.005;
     this.ratio = 0.0457;
-    this.mode = 'dual';
+    this.mode = 'mockup';
 
     this.range = .4;
 
@@ -95,7 +97,8 @@ export default class Simulation {
         index2d = vs(index2dTmpl),
         particle = vs(particleTmpl),
         quad = vs(quadTmpl),
-        traversal = vs(traversalTmpl);
+        traversal = vs(traversalTmpl),
+        renderSurfaceVs = vs(renderSurfaceVsTmpl);
 
     let mean = fs(meanTmpl),
         density = fs(densityTmpl, cellConsts),
@@ -108,7 +111,8 @@ export default class Simulation {
         pyramid = fs(pyramidTmpl),
         packFloat = fs(packFloatTmpl),
         compact = fs(compactTmpl, cellConsts),
-        triangleCreator = fs(triangleCreatorTmpl, cellConsts);
+        triangleCreator = fs(triangleCreatorTmpl, cellConsts),
+        renderSurfaceFs = fs(renderSurfaceFsTmpl);
 
     return {
       mean: link(cell, mean),
@@ -123,7 +127,8 @@ export default class Simulation {
       pyramid: link(quad, pyramid),
       packFloat: link(quad, packFloat),
       compact: link(traversal, compact),
-      triangleCreator: link(traversal, triangleCreator)
+      triangleCreator: link(traversal, triangleCreator),
+      renderSurface: link(renderSurfaceVs, renderSurfaceFs)
     };
   }
 
@@ -151,10 +156,16 @@ export default class Simulation {
 
     let triangleIndexes = activeCellIndexes;
     let triangleCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
-    for (let i = 0; i < TRIANGLES_TEX_SIZE; ++i) {
+    let vertexCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
+
+    for (let i = 0; i < TRIANGLES_TEX_SIZE**2; ++i) {
       triangleIndexes[i] = i;
       triangleCoords[ 2*i ] = ((i % TRIANGLES_TEX_SIZE) + .5)/TRIANGLES_TEX_SIZE;
       triangleCoords[2*i+1] = ((i / TRIANGLES_TEX_SIZE|0) + .5)/TRIANGLES_TEX_SIZE;
+
+      let j = i/3 |0;
+      vertexCoords[ 2*i ] = ((j % TRIANGLES_TEX_SIZE) + .5)/TRIANGLES_TEX_SIZE;
+      vertexCoords[2*i+1] = ((j / TRIANGLES_TEX_SIZE|0) + .5)/TRIANGLES_TEX_SIZE;
     }
 
     return {
@@ -174,6 +185,10 @@ export default class Simulation {
       creator: utils.createBuffers(this.gl, {
         index: {dims: 1, data: triangleIndexes},
         texCoord: {dims: 2, data: triangleCoords}
+      }),
+      surface: utils.createBuffers(this.gl, {
+        index: {dims: 1, data: triangleIndexes},
+        texCoord: {dims: 2, data: vertexCoords}
       })
     };
   }
@@ -303,35 +318,39 @@ export default class Simulation {
   }
 
   render() {
+    let {gl} = this;
+
     this.camera.update();
 
     if (this.mode !== 'wireframe')
       this.generateSurface();
 
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    //gl.clearColor(0, 0, 0, 0);
+    //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    let {drawingBufferWidth: vw, drawingBufferHeight: vh} = this.gl;
+    let {drawingBufferWidth: vw, drawingBufferHeight: vh} = gl;
 
     switch (this.mode) {
       case 'wireframe':
-        this.gl.viewport(0, 0, vw, vh);
+        gl.viewport(0, 0, vw, vh);
         this.renderBBox();
         this.renderParticles();
         break;
 
       case 'mockup':
-        this.gl.viewport(0, 0, vw, vh);
+        gl.viewport(0, 0, vw, vh);
         this.renderBBox();
         this.renderSurface();
         break;
 
       case 'dual':
         let [hvw, hvh, qvh] = [vw/2, vh/2, vh/4];
-        this.gl.viewport(0, qvh, hvw, hvh);
+        gl.viewport(0, qvh, hvw, hvh);
         this.renderBBox();
         this.renderParticles();
 
-        this.gl.viewport(hvw, qvh, hvw, hvh);
+        gl.viewport(hvw, qvh, hvw, hvh);
         this.renderBBox();
         this.renderSurface();
         break;
@@ -357,6 +376,24 @@ export default class Simulation {
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
+  }
+
+  renderSurface() {
+    let {gl} = this;
+    let program = this.programs.renderSurface;
+
+    gl.useProgram(program);
+    utils.setBuffersAndAttributes(gl, program, this.buffers.surface);
+
+    utils.setUniforms(program, {
+      positions: this.textures.triangles.slice(0, 3),
+      normals: this.textures.triangles.slice(3),
+      viewProj: this.camera.matrix
+    });
+
+    //gl.enable(gl.DEPTH_TEST);
+    gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);
+    //gl.disable(gl.DEPTH_TEST);
   }
 
   generateSurface() {
@@ -436,9 +473,9 @@ export default class Simulation {
       traversal: this.textures.nodes,
       mcCases: this.textures.mcCases
     }, 4*activeCells);
-  }
 
-  renderSurface() {}
+    this.activeCells = activeCells;
+  }
 
   drawParticles(program, framebuffer, uniforms, clear = false, add = false) {
     let {gl} = this;
@@ -474,15 +511,12 @@ export default class Simulation {
     utils.setBuffersAndAttributes(gl, program, this.buffers.quad);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
 
     if (clear) {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
     }
-
-    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
