@@ -133,8 +133,8 @@ export default class Simulation {
   }
 
   createBuffers() {
-    let coords = new Float32Array(2 * this.nParticles);
-    for (let i = 0; i < this.nParticles; ++i) {
+    let coords = new Float32Array(2 * DATA_TEX_SIZE**2);
+    for (let i = 0, n = DATA_TEX_SIZE**2; i < n; ++i) {
       coords[ i*2 ] = ((i % DATA_TEX_SIZE) + .5)/DATA_TEX_SIZE;
       coords[i*2+1] = ((i / DATA_TEX_SIZE|0) + .5)/DATA_TEX_SIZE;
     }
@@ -146,20 +146,20 @@ export default class Simulation {
 
     let quad = [-1, -1, 1, -1, -1, 1, 1, 1];
 
-    let activeCellIndexes = new Float32Array(this.nParticles);
-    let activeCellCoords = new Float32Array(2 * this.nParticles);
-    for (let i = 0; i < this.nParticles; ++i) {
-      activeCellIndexes[i] = i;
+    let indexes = new Float32Array(Math.max(CELLS_TEX_SIZE, TRIANGLES_TEX_SIZE)**2);
+
+    let activeCellCoords = new Float32Array(2 * CELLS_TEX_SIZE**2);
+    for (let i = 0, n = CELLS_TEX_SIZE**2; i < n; ++i) {
+      indexes[i] = i;
       activeCellCoords[ 2*i ] = ((i % CELLS_TEX_SIZE) + .5)/CELLS_TEX_SIZE;
       activeCellCoords[2*i+1] = ((i / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
     }
 
-    let triangleIndexes = activeCellIndexes;
     let triangleCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
     let vertexCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
 
-    for (let i = 0; i < TRIANGLES_TEX_SIZE**2; ++i) {
-      triangleIndexes[i] = i;
+    for (let i = 0, n = TRIANGLES_TEX_SIZE**2; i < n; ++i) {
+      indexes[i] = i;
       triangleCoords[ 2*i ] = ((i % TRIANGLES_TEX_SIZE) + .5)/TRIANGLES_TEX_SIZE;
       triangleCoords[2*i+1] = ((i / TRIANGLES_TEX_SIZE|0) + .5)/TRIANGLES_TEX_SIZE;
 
@@ -179,15 +179,15 @@ export default class Simulation {
         vertex: {dims: 2, data: quad}
       }),
       compact: utils.createBuffers(this.gl, {
-        index: {dims: 1, data: activeCellIndexes},
+        index: {dims: 1, data: indexes},
         texCoord: {dims: 2, data: activeCellCoords}
       }),
       creator: utils.createBuffers(this.gl, {
-        index: {dims: 1, data: triangleIndexes},
+        index: {dims: 1, data: indexes},
         texCoord: {dims: 2, data: triangleCoords}
       }),
       surface: utils.createBuffers(this.gl, {
-        index: {dims: 1, data: triangleIndexes},
+        index: {dims: 1, data: indexes},
         texCoord: {dims: 2, data: vertexCoords}
       })
     };
