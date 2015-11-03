@@ -38,7 +38,7 @@ export default class Simulation {
     this.gl = gl;
 
     this.gravity = -9.81;
-    this.deltaT = 0.005;
+    this.deltaT = .005;
 
     this.temperature = 20;
     this.density0 = 998.29;
@@ -46,13 +46,15 @@ export default class Simulation {
     this.pressureK = 3;
 
     this.nParticles = 50000;
-    this.mass = 0.005;
-    this.ratio = 0.0457;
+    this.mass = .005;
+    this.ratio = .0457;
     this.mode = 'mockup';
 
     this.range = .4;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
+
+    this.activeCells = 0;
 
     this.extensions = this.getExtensions();
     this.programs = this.createPrograms();
@@ -207,7 +209,7 @@ export default class Simulation {
       mcCasesTex[i*4] = mcCases[i];
 
     let gl = this.gl;
-    let {RGBA, NEAREST} = gl;
+    let {RGBA, UNSIGNED_BYTE, NEAREST} = gl;
     let FLOAT = this.extensions.float.type;
 
     return {
@@ -222,7 +224,7 @@ export default class Simulation {
       pyramid: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
       pyramidLvls: Array(...Array(CELLS_PYRAMID_LVLS)).map((_, i) =>
         utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
-      totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, FLOAT),
+      totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, UNSIGNED_BYTE),
       mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, FLOAT, mcCasesTex),
       triangles: Array(...Array(6)).map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT))
@@ -405,7 +407,10 @@ export default class Simulation {
   }
 
   evaluateActivity() {
-    this.drawParticles(this.programs.activity, this.framebuffers.activity, null, true);
+    this.drawParticles(this.programs.activity, this.framebuffers.activity, {
+      positions: this.textures.positions,
+      nCells: 3/(2*this.ratio)
+    }, true);
   }
 
   evaluateNodes() {
@@ -428,42 +433,45 @@ export default class Simulation {
     let offset = 0;
 
     while (lvl --> 0) {
+      let size = 1 << lvl;
+      if (size > 1) {
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(0, 0, size, size * .5);
+      }
+
       this.drawQuad(this.programs.pyramid, this.framebuffers.pyramidLvls[lvl], {
         data: this.textures.pyramidLvls[lvl + 1] || this.textures.activity,
-        size: (1 << lvl + 1) / CELLS_TEX_SIZE
+        size: (1 << CELLS_PYRAMID_LVLS - lvl) / CELLS_TEX_SIZE
       }, true);
-
-      let size = 1 << lvl;
 
       gl.bindTexture(gl.TEXTURE_2D, this.textures.pyramid);
       gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
       gl.bindTexture(gl.TEXTURE_2D, null);
 
       offset += size;
+      gl.disable(gl.SCISSOR_TEST);
     }
-  }
-
-  createTriangles() {
-    let {gl} = this;
 
     // Read the total active cells.
     this.drawQuad(this.programs.packFloat, this.framebuffers.totalActive, {
       data: this.textures.pyramidLvls[0],
       invMax: CELLS_TEX_SIZE**-2
-    });
+    }, true);
 
     let pixels = new Uint8Array(4);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    this.gl.readPixels(0, 0, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
     let activeCells = (pixels[0]  + pixels[1]/255 + pixels[2]/65025 + pixels[3]/160581375);
-    activeCells *= (CELLS_TEX_SIZE**2)/255;
-    activeCells = Math.round(activeCells);
+    activeCells *= CELLS_TEX_SIZE**2 / 255;
+    this.activeCells = Math.round(activeCells);
+  }
 
+  createTriangles() {
     // Parse the pyramid for compaction.
     this.drawPoints(this.programs.compact, this.framebuffers.nodes,
                     this.buffers.compact, {
       base: this.textures.activity,
       pyramid: this.textures.pyramid
-    }, activeCells);
+    }, this.activeCells);
 
     // Create triangles.
     this.drawPoints(this.programs.triangleCreator, this.framebuffers.triangles,
@@ -472,9 +480,7 @@ export default class Simulation {
       potential: this.textures.activity,
       traversal: this.textures.nodes,
       mcCases: this.textures.mcCases
-    }, 4*activeCells);
-
-    this.activeCells = activeCells;
+    }, 4*this.activeCells);
   }
 
   drawParticles(program, framebuffer, uniforms, clear = false, add = false) {
