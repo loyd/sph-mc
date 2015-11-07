@@ -12,8 +12,8 @@ export default class Camera {
     this.zoom = 1;
     this.minZoom = .3;
     this.maxZoom = 5;
-    this.near = 0;
-    this.far = 10000;
+    this.near = 0.001;
+    this.far = 1000;
     this.speed = Math.PI/1000;
 
     this.down = false;
