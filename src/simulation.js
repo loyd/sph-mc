@@ -333,8 +333,11 @@ export default class Simulation {
       this.generateSurface();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    //gl.clearColor(0, 0, 0, 0);
-    //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     let {drawingBufferWidth: vw, drawingBufferHeight: vh} = gl;
 
@@ -362,6 +365,9 @@ export default class Simulation {
         this.renderSurface();
         break;
     }
+
+    gl.disable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
   }
 
   renderBBox() {
@@ -398,9 +404,7 @@ export default class Simulation {
       viewProj: this.camera.matrix
     });
 
-    //gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);
-    //gl.disable(gl.DEPTH_TEST);
   }
 
   generateSurface() {
