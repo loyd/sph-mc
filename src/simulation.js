@@ -225,8 +225,11 @@ export default class Simulation {
       pyramidLvls: Array(...Array(CELLS_PYRAMID_LVLS)).map((_, i) =>
         utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
       totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, UNSIGNED_BYTE),
+      traversal: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
       mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, FLOAT, mcCasesTex),
-      triangles: Array(...Array(6)).map(_ =>
+      vertices: [0, 0, 0].map(_ =>
+        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
+      normals: [0, 0, 0].map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT))
     };
   }
@@ -248,8 +251,10 @@ export default class Simulation {
       nodes: utils.createFramebuffer(this.gl, this.textures.nodes),
       pyramidLvls: this.textures.pyramidLvls.map(tex => utils.createFramebuffer(this.gl, tex)),
       totalActive: utils.createFramebuffer(this.gl, this.textures.totalActive),
+      traversal: utils.createFramebuffer(this.gl, this.textures.traversal),
       triangles: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
-                                            ...this.textures.triangles)
+                                            ...this.textures.vertices,
+                                            ...this.textures.normals)
     };
   }
 
@@ -388,8 +393,8 @@ export default class Simulation {
     utils.setBuffersAndAttributes(gl, program, this.buffers.surface);
 
     utils.setUniforms(program, {
-      positions: this.textures.triangles.slice(0, 3),
-      normals: this.textures.triangles.slice(3),
+      vertices: this.textures.vertices,
+      normals: this.textures.normals,
       viewProj: this.camera.matrix
     });
 
@@ -434,10 +439,10 @@ export default class Simulation {
 
     while (lvl --> 0) {
       let size = 1 << lvl;
-      if (size > 1) {
-        gl.enable(gl.SCISSOR_TEST);
-        gl.scissor(0, 0, size, size * .5);
-      }
+      //if (size > 1) {
+        //gl.enable(gl.SCISSOR_TEST);
+        //gl.scissor(0, 0, size, size * .5);
+      //}
 
       this.drawQuad(this.programs.pyramid, this.framebuffers.pyramidLvls[lvl], {
         data: this.textures.pyramidLvls[lvl + 1] || this.textures.activity,
@@ -449,7 +454,7 @@ export default class Simulation {
       gl.bindTexture(gl.TEXTURE_2D, null);
 
       offset += size;
-      gl.disable(gl.SCISSOR_TEST);
+      //gl.disable(gl.SCISSOR_TEST);
     }
 
     // Read the total active cells.
@@ -467,7 +472,7 @@ export default class Simulation {
 
   createTriangles() {
     // Parse the pyramid for compaction.
-    this.drawPoints(this.programs.compact, this.framebuffers.nodes,
+    this.drawPoints(this.programs.compact, this.framebuffers.traversal,
                     this.buffers.compact, {
       base: this.textures.activity,
       pyramid: this.textures.pyramid
@@ -476,9 +481,10 @@ export default class Simulation {
     // Create triangles.
     this.drawPoints(this.programs.triangleCreator, this.framebuffers.triangles,
                     this.buffers.creator, {
+      cellSize: 2/3*this.ratio,
       range: this.range,
-      potential: this.textures.activity,
-      traversal: this.textures.nodes,
+      potentials: this.textures.nodes,
+      traversal: this.textures.traversal,
       mcCases: this.textures.mcCases
     }, 4*this.activeCells);
   }

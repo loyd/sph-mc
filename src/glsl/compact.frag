@@ -59,8 +59,8 @@ void main(void) {
   pos = m.x * pos1 + m.y * pos2 + m.z * pos3 + m.w * pos4;
   vec2 index = pos * {{totalSize}};
 
-  gl_FragColor = vec4(invXYSize*vec3(mod(index.x, {{xySize}}),
-                                     mod(index.y, {{xySize}}),
-                                     {{zSize}}*floor(index.y*invXYSize)+floor(index.x*invXYSize)),
+  gl_FragColor = vec4(vec3(mod(index.x, {{xySize}}),
+                           mod(index.y, {{xySize}}),
+                           {{zSize}}*floor(index.y*invXYSize)+floor(index.x*invXYSize)),
                       texture2D(base, pos).a);
 }
