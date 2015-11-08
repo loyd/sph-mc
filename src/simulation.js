@@ -355,14 +355,19 @@ export default class Simulation {
         break;
 
       case 'dual':
-        let [hvw, hvh, qvh] = [vw/2, vh/2, vh/4];
-        gl.viewport(0, qvh, hvw, hvh);
+        gl.enable(gl.SCISSOR_TEST);
+
+        gl.viewport(-vw/4, 0, vw, vh);
+        gl.scissor(0, 0, vw/2, vh);
         this.renderBBox();
         this.renderParticles();
 
-        gl.viewport(hvw, qvh, hvw, hvh);
+        gl.viewport(vw/4, 0, vw, vh);
+        gl.scissor(vw/2, 0, vw/2, vh);
         this.renderBBox();
         this.renderSurface();
+
+        gl.disable(gl.SCISSOR_TEST);
         break;
     }
 
