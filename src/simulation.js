@@ -488,29 +488,8 @@ export default class Simulation {
   }
 
   drawParticles(program, framebuffer, uniforms, clear = false, add = false) {
-    let {gl} = this;
-
-    gl.useProgram(program);
-    utils.setUniforms(program, uniforms);
-    utils.setBuffersAndAttributes(gl, program, this.buffers.particles);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-
-    if (clear) {
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    gl.viewport(0, 0, framebuffer.size, framebuffer.size);
-
-    if (add) {
-      gl.enable(gl.BLEND);
-      gl.blendEquation(gl.FUNC_ADD);
-      gl.blendFunc(gl.ONE, gl.ONE);
-    }
-
-    gl.drawArrays(gl.POINTS, 0, this.nParticles);
-    if (add) gl.disable(gl.BLEND);
+    this.drawPoints(program, framebuffer, this.buffers.particles,
+                    uniforms, this.nParticles, clear, add);
   }
 
   drawQuad(program, framebuffer, uniforms, clear = false) {
@@ -531,7 +510,7 @@ export default class Simulation {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  drawPoints(program, framebuffer, buffers, uniforms, count) {
+  drawPoints(program, framebuffer, buffers, uniforms, count, clear = false, add = false) {
     let {gl} = this;
 
     gl.useProgram(program);
@@ -540,9 +519,19 @@ export default class Simulation {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.viewport(0, 0, framebuffer.size, framebuffer.size);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    if (add) {
+      gl.enable(gl.BLEND);
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE);
+    }
+
+    if (clear) {
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
 
     gl.drawArrays(gl.POINTS, 0, count);
+    if (add) gl.disable(gl.BLEND);
   }
 }
