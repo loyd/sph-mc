@@ -10,20 +10,18 @@ float hasParticles(vec3 cell) {
 }
 
 void main(void) {
+  //#TODO: what about 2d -> 2d instead of 2d -> 3d -> 2d?
   vec2 cell2D = floor(gl_FragCoord.xy);
-  vec3 cell = vec3(mod(cell2D, {{xySize}}),
-      {{zSize}} * floor(cell2D.y / {{xySize}}) + floor(cell2D.x / {{xySize}}));
+  vec3 cell = vec3(mod(cell2D, {{xySize}}), dot(floor(cell2D / {{xySize}}), vec2(1., {{zSize}})));
 
-  float value = .125 * (
-    hasParticles(cell + vec3(-1., -1., -1.)) +
-    hasParticles(cell + vec3( 0., -1., -1.)) +
-    hasParticles(cell + vec3( 0.,  0., -1.)) +
-    hasParticles(cell + vec3(-1.,  0., -1.)) +
-    hasParticles(cell + vec3(-1., -1.,  0.)) +
-    hasParticles(cell + vec3( 0., -1.,  0.)) +
-    hasParticles(cell + vec3( 0.,  0.,  0.)) +
-    hasParticles(cell + vec3(-1.,  0.,  0.))
-  );
+  float value = hasParticles(cell)
+              + hasParticles(cell + vec3(-1., -1., -1.))
+              + hasParticles(cell + vec3( 0., -1., -1.))
+              + hasParticles(cell + vec3( 0.,  0., -1.))
+              + hasParticles(cell + vec3(-1.,  0., -1.))
+              + hasParticles(cell + vec3(-1., -1.,  0.))
+              + hasParticles(cell + vec3( 0., -1.,  0.))
+              + hasParticles(cell + vec3(-1.,  0.,  0.));
 
-  gl_FragColor = vec4(value, 0., 0., 1.);
+  gl_FragColor = vec4(value * .125, 0., 0., 1.);
 }
