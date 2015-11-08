@@ -445,7 +445,7 @@ export default class Simulation {
       this.drawQuad(this.programs.pyramid, this.framebuffers.pyramidLvls[lvl], {
         data: this.textures.pyramidLvls[lvl + 1] || this.textures.activity,
         size: (1 << CELLS_PYRAMID_LVLS - lvl) / CELLS_TEX_SIZE
-      }, true);
+      });
 
       gl.bindTexture(gl.TEXTURE_2D, this.textures.pyramid);
       gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, offset, 0, 0, 0, size, size);
@@ -459,7 +459,7 @@ export default class Simulation {
     this.drawQuad(this.programs.packFloat, this.framebuffers.totalActive, {
       data: this.textures.pyramidLvls[0],
       invMax: CELLS_TEX_SIZE**-2
-    }, true);
+    });
 
     let pixels = new Uint8Array(4);
     this.gl.readPixels(0, 0, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
@@ -492,7 +492,7 @@ export default class Simulation {
                     uniforms, this.nParticles, clear, add);
   }
 
-  drawQuad(program, framebuffer, uniforms, clear = false) {
+  drawQuad(program, framebuffer, uniforms) {
     let {gl} = this;
 
     gl.useProgram(program);
@@ -501,11 +501,6 @@ export default class Simulation {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.viewport(0, 0, framebuffer.size, framebuffer.size);
-
-    if (clear) {
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-    }
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
