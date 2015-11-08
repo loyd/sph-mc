@@ -11,7 +11,6 @@ import traversalTmpl from './glsl/traversal.vert';
 import renderSurfaceVsTmpl from './glsl/render_surface.vert';
 
 import colorTmpl from './glsl/color.frag';
-import whiteColorTmpl from './glsl/white_color.frag';
 import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
@@ -48,9 +47,9 @@ export default class Simulation {
     this.nParticles = 50000;
     this.mass = .005;
     this.ratio = .0457;
-    this.mode = 'mockup';
+    this.mode = 'dual';
 
-    this.range = .4;
+    this.range = .53;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
@@ -107,7 +106,6 @@ export default class Simulation {
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
-        whiteColor = fs(whiteColorTmpl),
         node = fs(nodeTmpl, cellConsts),
         relevant = fs(relevantTmpl, cellConsts),
         pyramid = fs(pyramidTmpl),
@@ -121,7 +119,6 @@ export default class Simulation {
       density: link(index2d, density),
       meanDensity: link(cell, meanDensity),
       lagrange: link(index2d, lagrange),
-      activity: link(cell, whiteColor),
       bbox: link(bbox, color),
       particle: link(particle, color),
       node: link(quad, node),
@@ -413,23 +410,15 @@ export default class Simulation {
   }
 
   generateSurface() {
-    this.evaluateActivity();
     this.evaluateNodes();
     this.evaluateRelevant();
     this.createHystoPyramid();
     this.createTriangles();
   }
 
-  evaluateActivity() {
-    this.drawParticles(this.programs.activity, this.framebuffers.activity, {
-      positions: this.textures.positions,
-      nCells: 3/(2*this.ratio)
-    }, true);
-  }
-
   evaluateNodes() {
     this.drawQuad(this.programs.node, this.framebuffers.nodes, {
-      activity: this.textures.activity
+      cells: this.textures.meanPositions
     });
   }
 
