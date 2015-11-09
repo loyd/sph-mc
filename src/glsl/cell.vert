@@ -11,7 +11,7 @@ void main(void) {
   coord = texCoord;
   vec3 position = texture2D(positions, coord).xyz;
 
-  vec3 cell = floor(position * nCells);
+  vec3 cell = floor(position * nCells) + vec3(1.);
   vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));
   vec2 cellCoord = 2./{{totalSize}} * (cell.xy + {{xySize}}*zCoord + vec2(.5)) - vec2(1.);
 

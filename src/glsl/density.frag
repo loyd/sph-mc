@@ -13,7 +13,7 @@ varying vec2 coord;
 
 void main(void) {
   vec3 position = texture2D(positions, coord).xyz;
-  vec3 cell = floor(position * nCells);
+  vec3 cell = floor(position * nCells) + vec3(1.);
 
   float density = 0.;
 
@@ -25,9 +25,6 @@ void main(void) {
       for (int k = -1; k <= 1; ++k) {
         vec3 nbCell = cell + vec3(float(k), float(j), float(i));
 
-        if (any(equal(nbCell, vec3(-1.))) || any(equal(nbCell, vec3(nCells))))
-            continue;
-
         vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
         vec4 nbPosition = texture2D(meanPositions, cellCoord);
 
@@ -35,8 +32,7 @@ void main(void) {
           continue;
 
         vec3 r = position - nbPosition.xyz / nbPosition.w;
-        float r2 = dot(r, r);
-        float dr = max(ratio2 - r2, 0.);
+        float dr = max(ratio2 - dot(r, r), 0.);
         density += nbPosition.w * dr*dr*dr;
       }
   }

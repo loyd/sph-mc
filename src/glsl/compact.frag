@@ -8,7 +8,6 @@ uniform sampler2D pyramid;
 varying float idx;
 
 const float invSize = 1./{{totalSize}};
-const float invXYSize = 1./{{xySize}};
 
 void main(void) {
   vec2 relPos = vec2(0.);
@@ -59,8 +58,7 @@ void main(void) {
   pos = m.x * pos1 + m.y * pos2 + m.z * pos3 + m.w * pos4;
   vec2 index = pos * {{totalSize}};
 
-  gl_FragColor = vec4(vec3(mod(index.x, {{xySize}}),
-                           mod(index.y, {{xySize}}),
-                           {{zSize}}*floor(index.y*invXYSize)+floor(index.x*invXYSize)),
+  gl_FragColor = vec4(vec3(mod(index, {{xySize}}),
+                           dot(floor(index / {{xySize}}), vec2(1., {{zSize}}))),
                       texture2D(base, pos).a);
 }

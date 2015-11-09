@@ -55,7 +55,7 @@ void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float
   vec3 mult = vec3(lessThan(abs(vec3(diff.x, range - n1, -diff.y)), vec3(0.)));
 
   pos = mult.x*b0 + mult.y*b1 + mult.z*b0 + (1. - dot(mult, mult)) * mix(b0, b1, diff.x/diff.y);
-  pos *= cellSize;
+  pos = pos*cellSize + vec3(-cellSize);
 
   vec2 deltaX = index2D(b0 + vec3(1., 0., 0.));
   vec2 deltaY = index2D(b0 + vec3(0., 1., 0.));

@@ -24,7 +24,7 @@ const vec3 boxSize = vec3(0.49, 0.49, 0.49);
 
 void main(void) {
   vec3 position = texture2D(positions, coord).xyz;
-  vec3 cell = floor(position * nCells);
+  vec3 cell = floor(position * nCells) + vec3(1.);
   vec4 piece = texture2D(velDens, coord);
   vec3 velocity = piece.xyz;
   float density = piece.w;
@@ -41,9 +41,6 @@ void main(void) {
     for (int j = -1; j <= 1; ++j)
       for (int k = -1; k <= 1; ++k) {
         vec3 nbCell = cell + vec3(float(k), float(j), float(i));
-
-        if (any(equal(nbCell, vec3(-1.))) || any(equal(nbCell, vec3(nCells))))
-            continue;
 
         vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
         piece = texture2D(meanPositions, cellCoord);
@@ -83,7 +80,8 @@ void main(void) {
   vec3 d = abs(position - center) - boxSize;
   float distance = min(max(d.x,max(d.y,d.z)),0.) + length(max(d,0.));
   float restitution = distance / max(deltaT * length(velocity), 0.001);
-  if (distance > 0.) velocity -= ((1. + restitution) * dot(velocity, normal) * step(-length(velocity), 0.)) * normal;
+  if (distance > 0.)
+    velocity -= ((1. + restitution) * dot(velocity, normal) * step(-length(velocity), 0.)) * normal;
 
   vec3 contactPoint = contactPointLocal + center;
   position += (contactPoint - position);
