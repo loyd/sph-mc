@@ -6,26 +6,27 @@ export default class GUI {
     let gui = this.gui = new dat.GUI();
 
     let env = this.env = gui.addFolder('Environment');
-    env.add(simulation, 'gravity', -15, -5, 1);
-    env.add(simulation, 'deltaT', 0.002, 0.02, 0.001);
+    env.add(simulation, 'gravity', -15, 0, .01);
+    env.add(simulation, 'deltaT', .002, .02, .0001);
     env.open();
 
     let fluid = this.fluid = gui.addFolder('Fluid material');
     fluid.add(simulation, 'temperature', 0, 80, 5);
-    fluid.add(simulation, 'density0', 100, 5000);
-    fluid.add(simulation, 'viscosity', 1, 50);
+    fluid.add(simulation, 'density0', 100, 5000, .01);
+    fluid.add(simulation, 'viscosity', 1, 50, .1);
     fluid.add(simulation, 'pressureK', .5, 10, .5);
+    fluid.add(simulation, 'tension', 0, .2, .01);
     fluid.open();
 
     let sph = this.sph = gui.addFolder('SPH');
     sph.add(simulation, 'nParticles', 5000, 250000, 5000);
-    sph.add(simulation, 'mass', 0.0005, 0.01, 0.0005);
-    sph.add(simulation, 'ratio', 0.02, 0.1, 0.005);
+    sph.add(simulation, 'mass', .0005, .01, .0005);
+    sph.add(simulation, 'ratio', .02, .1, .005);
     sph.add(simulation, 'mode', ['wireframe', 'mockup', 'dual']);
     sph.open();
 
     let mc = this.mc = gui.addFolder('MC');
-    mc.add(simulation, 'range', 0.2, 1, .01);
+    mc.add(simulation, 'range', .2, .99, .01);
     mc.open();
   }
 }

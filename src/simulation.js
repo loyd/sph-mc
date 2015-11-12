@@ -43,6 +43,7 @@ export default class Simulation {
     this.density0 = 998.29;
     this.viscosity = 3;
     this.pressureK = 3;
+    this.tension = .0728;
 
     this.nParticles = 50000;
     this.mass = .005;
@@ -302,14 +303,19 @@ export default class Simulation {
       meanVelDens: this.textures.meanVelDens,
       nCells: 3/(2*this.ratio),
       ratio: this.ratio,
+      ratio2: this.ratio*this.ratio,
+      _3ratio2: 3*this.ratio*this.ratio,
       pressureK: this.pressureK,
       density0: this.density0,
       viscosity: this.viscosity,
+      tension: this.tension,
+      threshold: Math.sqrt(3*this.mass/(4*Math.PI*this.ratio**3)),
       deltaT: this.deltaT,
       mass: this.mass,
       gravity: this.gravity,
       wPressure: -45/(Math.PI*this.ratio**6),
-      wViscosity: 45/(Math.PI*this.ratio**6)
+      wViscosity: 45/(Math.PI*this.ratio**6),
+      wTension: -945/(32*Math.PI*this.ratio**9)
     });
 
     let t = this.textures;

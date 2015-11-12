@@ -8,14 +8,19 @@ uniform sampler2D meanPositions;
 uniform sampler2D meanVelDens;
 uniform float nCells;
 uniform float ratio;
+uniform float ratio2;
+uniform float _3ratio2;
 uniform float pressureK;
 uniform float density0;
 uniform float viscosity;
+uniform float tension;
+uniform float threshold;
 uniform float deltaT;
 uniform float mass;
 uniform float gravity;
 uniform float wPressure;
 uniform float wViscosity;
+uniform float wTension;
 
 varying vec2 coord;
 
@@ -31,8 +36,10 @@ void main(void) {
 
   float pressure = max(pressureK * (density - density0), 0.);
 
+  vec3 surfaceNormal = vec3(0.);
   vec3 pressureForce = vec3(0.);
   vec3 viscosityForce = vec3(0.);
+  vec3 tensionForce = vec3(0.);
 
   for (int i = -1; i <= 1; ++i) {
     float nbCellZ = cell.z + float(i);
@@ -51,27 +58,46 @@ void main(void) {
 
         float invNbCount = 1./nbCount;
         vec3 diff = position - piece.xyz * invNbCount;
-        float distance = length(diff);
+        float distance2 = dot(diff, diff);
+        float distance = sqrt(distance2);
+
+        if (distance >= ratio)
+          continue;
 
         piece = texture2D(meanVelDens, cellCoord) * invNbCount;
         vec3 nbVelocity = piece.xyz;
         float nbDensity = piece.w;
-        float invNbDensity = 1./nbDensity;
+        float nbCountPerDensity = nbCount / nbDensity;
 
-        float dr = max(ratio - distance, 0.);
+        float dr = ratio - distance;
         float nbPressure = max(pressureK * (nbDensity - density0), 0.);
+        float coef = nbCountPerDensity * dr;
 
         //#TODO: check advanced equation.
         if (distance > 0.)
-          pressureForce -= nbCount * (nbPressure + pressure) * invNbDensity * diff/distance * dr*dr;
-        viscosityForce += nbCount * (nbVelocity - velocity) * invNbDensity * dr;
+          pressureForce += coef * (nbPressure + pressure) * diff/distance * dr;
+        viscosityForce += coef * (nbVelocity - velocity);
+
+        //#TODO: what about Becker'07?
+        float dr2 = ratio2 - distance2;
+        coef = nbCountPerDensity * dr2;
+        surfaceNormal += coef * diff * dr2;
+        tensionForce += coef * (_3ratio2 - 7.*distance2);
       }
   }
 
-  vec3 internalForce = mass * (.5*wPressure*pressureForce + viscosity * wViscosity*viscosityForce);
+  pressureForce *= .5 * wPressure;
+  viscosityForce *= viscosity * wViscosity;
+
+  surfaceNormal *= mass * wTension;
+  float surfaceNormalLength = length(surfaceNormal);
+  if (surfaceNormalLength >= threshold)
+    tensionForce *= tension * surfaceNormal/surfaceNormalLength * wTension;
+
+  vec3 volumeForce = viscosityForce - pressureForce - tensionForce;
 
   //#TODO: use leap-frog scheme.
-  velocity += deltaT * (vec3(0., gravity, 0.) + internalForce/density);
+  velocity += deltaT * (vec3(0., gravity, 0.) + mass/density * volumeForce);
   position += velocity * deltaT;
 
   vec3 xLocal = position - center;
