@@ -382,7 +382,10 @@ export default class Simulation {
     let [program, buffer] = [this.programs.bbox, this.buffers.bbox];
 
     this.gl.useProgram(program);
-    utils.setUniforms(program, {viewProj: this.camera.matrix});
+    utils.setUniforms(program, {
+      viewProj: this.camera.matrix,
+      color: [1, 1, 1, 1]
+    });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.LINES, 0, 24);
   }
@@ -393,7 +396,8 @@ export default class Simulation {
     this.gl.useProgram(program);
     utils.setUniforms(program, {
       viewProj: this.camera.matrix,
-      positions: this.textures.positions
+      positions: this.textures.positions,
+      color: [.92, .96, .98, 1]
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
