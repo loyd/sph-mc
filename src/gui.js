@@ -26,6 +26,7 @@ export default class GUI {
     sph.open();
 
     let mc = this.mc = gui.addFolder('MC');
+    mc.add(simulation, 'nVoxels', 0, 100, 1);
     mc.add(simulation, 'range', .2, .99, .01);
     mc.open();
   }

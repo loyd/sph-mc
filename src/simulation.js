@@ -50,6 +50,7 @@ export default class Simulation {
     this.ratio = .0457;
     this.mode = 'dual';
 
+    this.nVoxels = 25;
     this.range = .53;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
@@ -122,6 +123,7 @@ export default class Simulation {
       lagrange: link(index2d, lagrange),
       bbox: link(bbox, color),
       particle: link(particle, color),
+      activity: link(cell, color),
       node: link(quad, node),
       relevant: link(quad, relevant),
       pyramid: link(quad, pyramid),
@@ -420,15 +422,24 @@ export default class Simulation {
   }
 
   generateSurface() {
+    this.evaluateActivities();
     this.evaluateNodes();
     this.evaluateRelevant();
     this.createHystoPyramid();
     this.createTriangles();
   }
 
+  evaluateActivities() {
+    this.drawParticles(this.programs.activity, this.framebuffers.activity, {
+      positions: this.textures.positions,
+      nCells: this.nVoxels,
+      color: [1, 1, 1, 1]
+    }, true);
+  }
+
   evaluateNodes() {
     this.drawQuad(this.programs.node, this.framebuffers.nodes, {
-      cells: this.textures.meanPositions
+      cells: this.textures.activity
     });
   }
 
@@ -489,7 +500,7 @@ export default class Simulation {
     // Create triangles.
     this.drawPoints(this.programs.triangleCreator, this.framebuffers.triangles,
                     this.buffers.creator, {
-      cellSize: 2/3*this.ratio,
+      cellSize: 1/this.nVoxels,
       range: this.range,
       potentials: this.textures.nodes,
       traversal: this.textures.traversal,

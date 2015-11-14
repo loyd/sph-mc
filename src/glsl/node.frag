@@ -6,7 +6,7 @@ uniform sampler2D cells;
 float hasParticles(vec3 cell) {
   vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));
   vec2 cellCoord = (cell.xy + {{xySize}}*zCoord + vec2(.5)) / {{totalSize}};
-  return sign(texture2D(cells, cellCoord).w);
+  return texture2D(cells, cellCoord).s;
 }
 
 void main(void) {
