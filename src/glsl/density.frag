@@ -23,7 +23,7 @@ void main(void) {
 
     for (int j = -1; j <= 1; ++j)
       for (int k = -1; k <= 1; ++k) {
-        vec3 nbCell = cell + vec3(float(k), float(j), float(i));
+        vec3 nbCell = cell + vec3(k, j, i);
 
         vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
         vec4 nbPosition = texture2D(meanPositions, cellCoord);
