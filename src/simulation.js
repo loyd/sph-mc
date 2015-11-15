@@ -15,6 +15,7 @@ import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
 import lagrangeTmpl from './glsl/lagrange.frag';
+import spreadTmpl from './glsl/spread.frag';
 import nodeTmpl from './glsl/node.frag';
 import relevantTmpl from './glsl/relevant.frag';
 import pyramidTmpl from './glsl/pyramid.frag';
@@ -50,6 +51,7 @@ export default class Simulation {
     this.ratio = .0457;
     this.mode = 'dual';
 
+    this.spread = 3;
     this.nVoxels = 25;
     this.range = .53;
 
@@ -108,6 +110,7 @@ export default class Simulation {
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
+        spread = fs(spreadTmpl, cellConsts),
         node = fs(nodeTmpl, cellConsts),
         relevant = fs(relevantTmpl, cellConsts),
         pyramid = fs(pyramidTmpl),
@@ -124,6 +127,7 @@ export default class Simulation {
       bbox: link(bbox, color),
       particle: link(particle, color),
       activity: link(cell, color),
+      spread: link(quad, spread),
       node: link(quad, node),
       relevant: link(quad, relevant),
       pyramid: link(quad, pyramid),
@@ -422,19 +426,32 @@ export default class Simulation {
   }
 
   generateSurface() {
-    this.evaluateActivities();
+    this.evaluateActivity();
+    this.spreadActivity();
     this.evaluateNodes();
     this.evaluateRelevant();
     this.createHystoPyramid();
     this.createTriangles();
   }
 
-  evaluateActivities() {
+  evaluateActivity() {
     this.drawParticles(this.programs.activity, this.framebuffers.activity, {
       positions: this.textures.positions,
       nCells: this.nVoxels,
       color: [1, 1, 1, 1]
     }, true);
+  }
+
+  spreadActivity() {
+    for (let i = 0; i < this.spread; ++i) {
+      this.drawQuad(this.programs.spread, this.framebuffers.nodes, {
+        cells: this.textures.activity
+      });
+
+      let [t, f] = [this.textures, this.framebuffers];
+      [t.activity, t.nodes] = [t.nodes, t.activity];
+      [f.activity, f.nodes] = [f.nodes, f.activity];
+    }
   }
 
   evaluateNodes() {
