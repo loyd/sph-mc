@@ -20,6 +20,10 @@ export default class Camera {
     this.dirty = true;
     this.marker = {x: 0, y: 0};
     this.mouse = {x: 0, y: 0};
+
+    this.eye = vec3.create();
+    this.view = mat4.create();
+    this.proj = mat4.create();
     this.matrix = mat4.create();
     this.update();
 
@@ -80,26 +84,28 @@ export default class Camera {
     if (!this.dirty)
       return;
 
-    mat4.multiply(this.matrix, this.calcProj(), this.calcView());
+    this.calcProj();
+    this.calcView();
+    mat4.multiply(this.matrix, this.proj, this.view);
     this.dirty = false;
   }
 
   calcProj() {
-    let proj = mat4.create();
-    mat4.perspective(proj, this.fov/this.zoom, this.aspect, this.near, this.far);
-    return proj;
+    mat4.perspective(this.proj, this.fov/this.zoom, this.aspect, this.near, this.far);
   }
 
   calcView() {
     let [vCos, vSin] = [Math.cos(this.vAngle), Math.sin(this.vAngle)];
     let [hCos, hSin] = [Math.cos(this.hAngle), Math.sin(this.hAngle)];
 
-    let eye = [vCos*hSin, vSin, vCos*hCos];
-    let right = [-hCos, 0, hSin];
+    let eye = vec3.fromValues(vCos*hSin, vSin, vCos*hCos);
+    let right = vec3.fromValues(-hCos, 0, hSin);
+
+    vec3.negate(this.eye, eye);
 
     let up = vec3.cross(right, right, eye);
     let position = vec3.add(eye, vec3.scale(eye, eye, this.dist), this.origin);
 
-    return mat4.lookAt(position, position, this.origin, up);
+    mat4.lookAt(this.view, position, this.origin, up);
   }
 }
