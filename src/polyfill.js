@@ -1,6 +1,6 @@
 //#TODO: What about core-js (babel/polyfill)?
 import 'setimmediate';
-import dat from 'dat-gui/vendor/dat.gui';
+import dat from 'dat-gui';
 import now from 'performance-now';
 import raf from 'raf';
 

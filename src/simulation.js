@@ -49,11 +49,18 @@ export default class Simulation {
     this.nParticles = 50000;
     this.mass = .005;
     this.ratio = .0457;
-    this.mode = 'dual';
+    this.mode = 'mockup';
 
     this.spread = 3;
     this.nVoxels = 25;
     this.range = .53;
+
+    this.ambient = .1;
+    this.diffuse = .2;
+    this.specular = .3;
+    this.lustreless = 60;
+    this.color = [.92, .96, .98];
+    this.opacity = .5;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
@@ -403,7 +410,7 @@ export default class Simulation {
     utils.setUniforms(program, {
       viewProj: this.camera.matrix,
       positions: this.textures.positions,
-      color: [.92, .96, .98, 1]
+      color: this.color.concat(1)
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.drawArrays(this.gl.POINTS, 0, this.nParticles);
@@ -419,7 +426,14 @@ export default class Simulation {
     utils.setUniforms(program, {
       vertices: this.textures.vertices,
       normals: this.textures.normals,
-      viewProj: this.camera.matrix
+      viewProj: this.camera.matrix,
+      eye: this.camera.eye,
+      ambient: this.ambient,
+      diffuse: this.diffuse,
+      specular: this.specular,
+      lustreless: this.lustreless,
+      color: this.color,
+      opacity: this.opacity
     });
 
     gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);

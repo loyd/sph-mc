@@ -1,4 +1,4 @@
-import dat from 'dat-gui/vendor/dat.gui';
+import dat from 'dat-gui';
 
 
 export default class GUI {
@@ -10,13 +10,13 @@ export default class GUI {
     env.add(simulation, 'deltaT', .002, .02, .0001);
     env.open();
 
-    let fluid = this.fluid = gui.addFolder('Fluid material');
-    fluid.add(simulation, 'temperature', 0, 80, 5);
-    let a = fluid.add(simulation, 'density0', 100, 5000, .01);
-    fluid.add(simulation, 'viscosity', 1, 50, .1);
-    fluid.add(simulation, 'pressureK', .5, 10, .5);
-    fluid.add(simulation, 'tension', 0, .2, .01);
-    fluid.open();
+    let physics = this.physics = gui.addFolder('Fluid physics');
+    physics.add(simulation, 'temperature', 0, 80, 5);
+    physics.add(simulation, 'density0', 100, 5000, .01);
+    physics.add(simulation, 'viscosity', 1, 50, .1);
+    physics.add(simulation, 'pressureK', .5, 10, .5);
+    physics.add(simulation, 'tension', 0, .2, .01);
+    physics.open();
 
     let sph = this.sph = gui.addFolder('SPH');
     sph.add(simulation, 'nParticles', 5000, 250000, 5000);
@@ -30,5 +30,24 @@ export default class GUI {
     mc.add(simulation, 'nVoxels', 0, 100, 1);
     mc.add(simulation, 'range', .2, .99, .01);
     mc.open();
+
+    let material = this.material = gui.addFolder('Fluid material');
+    material.add(simulation, 'ambient', 0, 1, .01);
+    material.add(simulation, 'diffuse', 0, 1, .01);
+    material.add(simulation, 'specular', 0, 1, .01);
+    material.add(simulation, 'lustreless', 0, 100, 1);
+
+    let proxy = {color: simulation.color.map(c => c * 255)};
+    let h = dat.color.color.math.component_from_hex;
+    material.addColor(proxy, 'color').onChange(color => {
+      if (typeof color === 'string') {
+        let num = +('0x' + color.slice(1));
+        simulation.color = [0, 1, 2].map(c => h(num, c) / 255);
+      } else
+        simulation.color = color.map(c => c / 255);
+    });
+
+    material.add(simulation, 'opacity', 0, 1, .01);
+    material.open();
   }
 }
