@@ -42,7 +42,7 @@ export default class GUI {
     material.addColor(proxy, 'color').onChange(color => {
       if (typeof color === 'string') {
         let num = +('0x' + color.slice(1));
-        simulation.color = [0, 1, 2].map(c => h(num, c) / 255);
+        simulation.color = [2, 1, 1].map(c => h(num, c) / 255);
       } else
         simulation.color = color.map(c => c / 255);
     });
