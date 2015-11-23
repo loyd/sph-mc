@@ -52,15 +52,15 @@ export default class Simulation {
     this.mode = 'mockup';
 
     this.spread = 3;
-    this.nVoxels = 25;
+    this.nVoxels = 40;
     this.range = .53;
 
     this.ambient = .1;
-    this.diffuse = .2;
-    this.specular = .3;
-    this.lustreless = 60;
-    this.color = [.92, .96, .98];
-    this.opacity = .5;
+    this.diffuse = .15;
+    this.specular = .8;
+    this.lustreless = 10;
+    this.color = [.4, .53, .7];
+    this.opacity = .3;
 
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
@@ -352,8 +352,6 @@ export default class Simulation {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     let {drawingBufferWidth: vw, drawingBufferHeight: vh} = gl;
 
@@ -387,7 +385,6 @@ export default class Simulation {
         break;
     }
 
-    gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
   }
 
@@ -423,6 +420,11 @@ export default class Simulation {
     gl.useProgram(program);
     utils.setBuffersAndAttributes(gl, program, this.buffers.surface);
 
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ZERO);
+    gl.enable(gl.CULL_FACE);
+    gl.depthMask(false);
+
     utils.setUniforms(program, {
       vertices: this.textures.vertices,
       normals: this.textures.normals,
@@ -437,6 +439,10 @@ export default class Simulation {
     });
 
     gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);
+
+    gl.depthMask(true);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
   }
 
   generateSurface() {

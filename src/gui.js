@@ -35,7 +35,7 @@ export default class GUI {
     material.add(simulation, 'ambient', 0, 1, .01);
     material.add(simulation, 'diffuse', 0, 1, .01);
     material.add(simulation, 'specular', 0, 1, .01);
-    material.add(simulation, 'lustreless', 0, 100, 1);
+    material.add(simulation, 'lustreless', 0, 80, 1);
 
     let proxy = {color: simulation.color.map(c => c * 255)};
     let h = dat.color.color.math.component_from_hex;
