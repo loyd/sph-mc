@@ -45,6 +45,7 @@ export default class Simulation {
     this.viscosity = 3;
     this.pressureK = 3;
     this.tension = .0728;
+    this.restitution = 0;
 
     this.nParticles = 50000;
     this.mass = .005;
@@ -323,6 +324,7 @@ export default class Simulation {
       viscosity: this.viscosity,
       tension: this.tension,
       threshold: Math.sqrt(3*this.mass/(4*Math.PI*this.ratio**3)),
+      restitution: this.restitution,
       deltaT: this.deltaT,
       mass: this.mass,
       gravity: this.gravity,

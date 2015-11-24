@@ -15,6 +15,7 @@ uniform float density0;
 uniform float viscosity;
 uniform float tension;
 uniform float threshold;
+uniform float restitution;
 uniform float deltaT;
 uniform float mass;
 uniform float gravity;
@@ -100,17 +101,19 @@ void main(void) {
   velocity += deltaT * (vec3(0., gravity, 0.) + mass/density * volumeForce);
   position += velocity * deltaT;
 
+  // Collision detection against the bounding box.
   vec3 xLocal = position - center;
-  vec3 contactPointLocal = min(boxSize, max(-boxSize, xLocal));
-  vec3 normal = normalize(sign(contactPointLocal - xLocal));
-  vec3 d = abs(position - center) - boxSize;
-  float distance = min(max(d.x,max(d.y,d.z)),0.) + length(max(d,0.));
-  float restitution = distance / max(deltaT * length(velocity), 0.001);
-  if (distance > 0.)
-    velocity -= ((1. + restitution) * dot(velocity, normal) * step(-length(velocity), 0.)) * normal;
+  vec3 depth = abs(xLocal) - boxSize;
+  float distance = max(depth.x, max(depth.y, depth.z));
 
-  vec3 contactPoint = contactPointLocal + center;
-  position += (contactPoint - position);
+  if (distance > 0.) {
+    vec3 contactPoint = min(boxSize, max(-boxSize, xLocal)) + center;
+    vec3 normal = normalize(sign(contactPoint - position));
+    float correction = distance / max(deltaT * length(velocity), 0.0001);
+
+    position = contactPoint;
+    velocity -= (1. + restitution * correction) * dot(velocity, normal) * normal;
+  }
 
   gl_FragData[0] = vec4(position, 0.);
   gl_FragData[1] = vec4(velocity, 0.);

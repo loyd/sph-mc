@@ -16,6 +16,7 @@ export default class GUI {
     physics.add(simulation, 'viscosity', 1, 50, .1);
     physics.add(simulation, 'pressureK', .5, 10, .5);
     physics.add(simulation, 'tension', 0, .2, .01);
+    physics.add(simulation, 'restitution', 0, 1, .01);
     physics.open();
 
     let sph = this.sph = gui.addFolder('SPH');
