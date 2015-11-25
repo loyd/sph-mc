@@ -1,6 +1,6 @@
 attribute mediump vec2 texCoord;
 
-uniform mat4 viewProj;
+uniform mat4 mvp;
 uniform sampler2D positions;
 
 varying lowp vec4 color;
@@ -10,5 +10,5 @@ void main(void) {
   color = vec4(1.);
 
   gl_PointSize = 2.;
-  gl_Position = viewProj * vec4(position, 1.);
+  gl_Position = mvp * vec4(position, 1.);
 }

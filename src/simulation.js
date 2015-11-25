@@ -1,14 +1,18 @@
+import {mat4} from 'gl-matrix';
+
 import * as utils from './utils';
 import Camera from './camera';
+import {Sphere} from './geometry';
 import mcCases from './mc_cases';
 
-import bboxTmpl from './glsl/bbox.vert';
+import simpleTmpl from './glsl/simple.vert';
 import cellTmpl from './glsl/cell.vert';
 import index2dTmpl from './glsl/index2d.vert';
 import particleTmpl from './glsl/particle.vert';
 import quadTmpl from './glsl/quad.vert';
 import traversalTmpl from './glsl/traversal.vert';
-import renderSurfaceVsTmpl from './glsl/render_surface.vert';
+import renderSurfaceTmpl from './glsl/render_surface.vert';
+import sphereTmpl from './glsl/sphere.vert';
 
 import colorTmpl from './glsl/color.frag';
 import meanTmpl from './glsl/mean.frag';
@@ -22,13 +26,15 @@ import pyramidTmpl from './glsl/pyramid.frag';
 import packFloatTmpl from './glsl/pack_float.frag';
 import compactTmpl from './glsl/compact.frag';
 import triangleCreatorTmpl from './glsl/triangle_creator.frag';
-import renderSurfaceFsTmpl from './glsl/render_surface.frag';
+import classicTmpl from './glsl/classic.frag';
 
 
 const DATA_TEX_SIZE = 1024;
 const CELL_XY_TEX_SIZE = 128;
 const CELL_Z_TEX_SIZE = 16;
 const TRIANGLES_TEX_SIZE = 1024;
+const SPHERE_RADIUS = .2;
+const SPHERE_DETAIL = 4;
 
 const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
 const CELLS_PYRAMID_LVLS = Math.log2(CELLS_TEX_SIZE);
@@ -50,7 +56,7 @@ export default class Simulation {
     this.nParticles = 50000;
     this.mass = .005;
     this.ratio = .0457;
-    this.mode = 'mockup';
+    this.mode = 'wireframe';
 
     this.spread = 3;
     this.nVoxels = 40;
@@ -63,6 +69,7 @@ export default class Simulation {
     this.color = [.4, .53, .7];
     this.opacity = .3;
 
+    this.sphere = new Sphere([.8, .2, .8], SPHERE_RADIUS, SPHERE_DETAIL);
     this.camera = new Camera(gl.canvas, [.5, .5, .5]);
 
     this.activeCells = 0;
@@ -102,16 +109,18 @@ export default class Simulation {
       zSize: CELL_Z_TEX_SIZE+'.',
       xySize: CELL_XY_TEX_SIZE+'.',
       totalSize: CELLS_TEX_SIZE+'.',
-      pyramidLvls: CELLS_PYRAMID_LVLS+'.'
+      pyramidLvls: CELLS_PYRAMID_LVLS+'.',
+      sphereRadius: SPHERE_RADIUS
     };
 
-    let bbox = vs(bboxTmpl),
+    let simple = vs(simpleTmpl),
         cell = vs(cellTmpl, cellConsts),
         index2d = vs(index2dTmpl),
         particle = vs(particleTmpl),
         quad = vs(quadTmpl),
         traversal = vs(traversalTmpl),
-        renderSurfaceVs = vs(renderSurfaceVsTmpl);
+        renderSurface = vs(renderSurfaceTmpl),
+        sphere = vs(sphereTmpl);
 
     let mean = fs(meanTmpl),
         density = fs(densityTmpl, cellConsts),
@@ -125,14 +134,14 @@ export default class Simulation {
         packFloat = fs(packFloatTmpl),
         compact = fs(compactTmpl, cellConsts),
         triangleCreator = fs(triangleCreatorTmpl, cellConsts),
-        renderSurfaceFs = fs(renderSurfaceFsTmpl);
+        classic = fs(classicTmpl);
 
     return {
       mean: link(cell, mean),
       density: link(index2d, density),
       meanDensity: link(cell, meanDensity),
       lagrange: link(index2d, lagrange),
-      bbox: link(bbox, color),
+      simple: link(simple, color),
       particle: link(particle, color),
       activity: link(cell, color),
       spread: link(quad, spread),
@@ -142,7 +151,8 @@ export default class Simulation {
       packFloat: link(quad, packFloat),
       compact: link(traversal, compact),
       triangleCreator: link(traversal, triangleCreator),
-      renderSurface: link(renderSurfaceVs, renderSurfaceFs)
+      renderSurface: link(renderSurface, classic),
+      sphere: link(sphere, classic)
     };
   }
 
@@ -203,7 +213,13 @@ export default class Simulation {
       surface: utils.createBuffers(this.gl, {
         index: {dims: 1, data: indexes},
         texCoord: {dims: 2, data: vertexCoords}
-      })
+      }),
+      sphere: utils.createBuffers(this.gl, {
+        position: {dims: 3, data: this.sphere.vertices}
+      }, this.sphere.faces),
+      sphereWireframe: utils.createBuffers(this.gl, {
+        position: {dims: 3, data: this.sphere.vertices}
+      }, this.sphere.edges)
     };
   }
 
@@ -330,7 +346,8 @@ export default class Simulation {
       gravity: this.gravity,
       wPressure: -45/(Math.PI*this.ratio**6),
       wViscosity: 45/(Math.PI*this.ratio**6),
-      wTension: -945/(32*Math.PI*this.ratio**9)
+      wTension: -945/(32*Math.PI*this.ratio**9),
+      sphereCenter: this.sphere.center
     });
 
     let t = this.textures;
@@ -360,12 +377,14 @@ export default class Simulation {
     switch (this.mode) {
       case 'wireframe':
         gl.viewport(0, 0, vw, vh);
+        this.renderSphereWireframe();
         this.renderBBox();
         this.renderParticles();
         break;
 
       case 'mockup':
         gl.viewport(0, 0, vw, vh);
+        this.renderSphere();
         this.renderBBox();
         this.renderSurface();
         break;
@@ -375,11 +394,13 @@ export default class Simulation {
 
         gl.viewport(-vw/4, 0, vw, vh);
         gl.scissor(0, 0, vw/2, vh);
+        this.renderSphereWireframe();
         this.renderBBox();
         this.renderParticles();
 
         gl.viewport(vw/4, 0, vw, vh);
         gl.scissor(vw/2, 0, vw/2, vh);
+        this.renderSphere();
         this.renderBBox();
         this.renderSurface();
 
@@ -390,12 +411,47 @@ export default class Simulation {
     gl.disable(gl.DEPTH_TEST);
   }
 
-  renderBBox() {
-    let [program, buffer] = [this.programs.bbox, this.buffers.bbox];
+  renderSphereWireframe() {
+    let [program, buffer] = [this.programs.simple, this.buffers.sphereWireframe];
 
     this.gl.useProgram(program);
     utils.setUniforms(program, {
-      viewProj: this.camera.matrix,
+      mvp: mat4.translate(mat4.create(), this.camera.matrix, this.sphere.center),
+      color: [.39, .24, .02, 1]
+    });
+
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+    this.gl.drawElements(this.gl.LINES, this.sphere.edges.length, this.gl.UNSIGNED_SHORT, 0);
+  }
+
+  renderSphere() {
+    let [program, buffer] = [this.programs.sphere, this.buffers.sphere];
+
+    this.gl.useProgram(program);
+    utils.setUniforms(program, {
+      mvp: mat4.translate(mat4.create(), this.camera.matrix, this.sphere.center),
+      eye: this.camera.eye,
+      ambient: this.ambient,
+      diffuse: .25,
+      specular: .45,
+      lustreless: 50,
+      color: [.39, .24, .02],
+      opacity: 1
+    });
+
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.drawElements(this.gl.TRIANGLES, this.sphere.faces.length, this.gl.UNSIGNED_SHORT, 0);
+    this.gl.disable(this.gl.CULL_FACE);
+  }
+
+  renderBBox() {
+    let [program, buffer] = [this.programs.simple, this.buffers.bbox];
+
+    this.gl.useProgram(program);
+    utils.setUniforms(program, {
+      mvp: this.camera.matrix,
       color: [1, 1, 1, 1]
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
@@ -407,7 +463,7 @@ export default class Simulation {
 
     this.gl.useProgram(program);
     utils.setUniforms(program, {
-      viewProj: this.camera.matrix,
+      mvp: this.camera.matrix,
       positions: this.textures.positions,
       color: this.color.concat(1)
     });
@@ -422,15 +478,10 @@ export default class Simulation {
     gl.useProgram(program);
     utils.setBuffersAndAttributes(gl, program, this.buffers.surface);
 
-    gl.enable(gl.BLEND);
-    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ZERO);
-    gl.enable(gl.CULL_FACE);
-    gl.depthMask(false);
-
     utils.setUniforms(program, {
       vertices: this.textures.vertices,
       normals: this.textures.normals,
-      viewProj: this.camera.matrix,
+      mvp: this.camera.matrix,
       eye: this.camera.eye,
       ambient: this.ambient,
       diffuse: this.diffuse,
@@ -439,6 +490,11 @@ export default class Simulation {
       color: this.color,
       opacity: this.opacity
     });
+
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ZERO);
+    gl.enable(gl.CULL_FACE);
+    gl.depthMask(false);
 
     gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);
 

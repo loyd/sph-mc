@@ -3,7 +3,7 @@ attribute vec2 texCoord;
 
 uniform highp sampler2D vertices[3];
 uniform highp sampler2D normals[3];
-uniform mat4 viewProj;
+uniform mat4 mvp;
 
 varying vec3 normal;
 
@@ -22,5 +22,5 @@ void main(void) {
     normal = texture2D(normals[2], texCoord).xyz;
   }
 
-  gl_Position = viewProj * vec4(position, 1.);
+  gl_Position = mvp * vec4(position, 1.);
 }

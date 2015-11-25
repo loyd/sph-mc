@@ -22,11 +22,14 @@ uniform float gravity;
 uniform float wPressure;
 uniform float wViscosity;
 uniform float wTension;
+uniform vec3 sphereCenter;
 
 varying vec2 coord;
 
-const vec3 center = vec3(0.5, 0.5, 0.5);
+const vec3 boxCenter = vec3(0.5, 0.5, 0.5);
 const vec3 boxSize = vec3(0.49, 0.49, 0.49);
+const float sphereRadius = {{sphereRadius}};
+const float sphereRadius2 = sphereRadius * sphereRadius;
 
 void main(void) {
   vec3 position = texture2D(positions, coord).xyz;
@@ -101,13 +104,27 @@ void main(void) {
   velocity += deltaT * (vec3(0., gravity, 0.) + mass/density * volumeForce);
   position += velocity * deltaT;
 
+  // Collision detection against the sphere.
+  vec3 xLocal = position - sphereCenter;
+  float xRadius2 = dot(xLocal, xLocal);
+
+  if (xRadius2 < sphereRadius2) {
+    float xRadius = sqrt(xRadius2);
+    vec3 normal = xLocal/xRadius;
+    float distance = sphereRadius - xRadius;
+    float correction = distance / max(deltaT * length(velocity), 0.0001);
+
+    position += distance * normal;
+    velocity -= (1. + restitution * correction) * dot(velocity, normal) * normal;
+  }
+
   // Collision detection against the bounding box.
-  vec3 xLocal = position - center;
+  xLocal = position - boxCenter;
   vec3 depth = abs(xLocal) - boxSize;
   float distance = max(depth.x, max(depth.y, depth.z));
 
   if (distance > 0.) {
-    vec3 contactPoint = min(boxSize, max(-boxSize, xLocal)) + center;
+    vec3 contactPoint = min(boxSize, max(-boxSize, xLocal)) + boxCenter;
     vec3 normal = normalize(sign(contactPoint - position));
     float correction = distance / max(deltaT * length(velocity), 0.0001);
 
