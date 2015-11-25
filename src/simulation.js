@@ -1,4 +1,4 @@
-import {mat4} from 'gl-matrix';
+import {vec2, vec3, mat4} from 'gl-matrix';
 
 import * as utils from './utils';
 import Camera from './camera';
@@ -71,12 +71,15 @@ export default class Simulation {
     this.opacity = .3;
 
     this.sphere = new Sphere([.8, .2, .8], SPHERE_RADIUS, SPHERE_DETAIL);
-
     this.camera = new Camera([.5, .5, .5]);
 
+    let interactive = false;
     this.mouse = new Mouse(gl.canvas)
-      .on('move', (dx, dy) => this.camera.rotate(dx, dy))
-      .on('wheel', dw => this.camera.zoom(dw));
+      .on('down', () => interactive = this.isOverSphere())
+      .on('up', () => interactive = false)
+      .on('wheel', dw => this.camera.zoom(dw))
+      .on('move', (dx, dy) => interactive ? this.moveSphere(dx, dy)
+                                          : this.camera.rotate(dx, dy));
 
     this.activeCells = 0;
 
@@ -295,6 +298,38 @@ export default class Simulation {
   resize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
     this.camera.setAspect(this.gl.drawingBufferWidth/this.gl.drawingBufferHeight);
+  }
+
+  isOverSphere() {
+    let mx = (this.mouse.cursor.x / this.gl.drawingBufferWidth) * 2 - 1;
+    let my = -(this.mouse.cursor.y / this.gl.drawingBufferHeight) * 2 + 1;
+    let [cx, cy] = vec3.transformMat4(vec3.create(), this.sphere.center, this.camera.matrix);
+    let r2 = this.sphere.radius**2;
+    let d2 = vec3.sqrDist(this.sphere.center, this.camera.position);
+    let fovy = this.camera.fov/this.camera.curZoom;
+    let pr2 = r2 / (Math.tan(fovy/2)**2 * (d2 - r2));
+    return ((mx-cx)*this.camera.aspect)**2 + (my-cy)**2 < pr2;
+  }
+
+  moveSphere(dx, dy) {
+    let delta = [(dx / this.gl.drawingBufferWidth) * 2,
+                 -(dy / this.gl.drawingBufferHeight) * 2];
+
+    let origin = vec3.fromValues(0, 0, 0);
+    let [xAxis, zAxis] = [vec3.fromValues(1, 0, 0), vec3.fromValues(0, 0, 1)];
+    vec3.transformMat4(origin, origin, this.camera.matrix);
+    vec2.sub(xAxis, vec3.transformMat4(xAxis, xAxis, this.camera.matrix), origin);
+    vec2.sub(zAxis, vec3.transformMat4(zAxis, zAxis, this.camera.matrix), origin);
+
+    let sx = vec2.dot(delta, xAxis) / vec2.dot(xAxis, xAxis);
+    let sz = vec2.dot(delta, zAxis) / vec2.dot(zAxis, zAxis);
+
+    let cx = this.sphere.center[0];
+    let cz = this.sphere.center[2];
+    let r = this.sphere.radius;
+
+    this.sphere.center[0] = Math.max(r, Math.min(cx + sx, 1 - r));
+    this.sphere.center[2] = Math.max(r, Math.min(cz + sz, 1 - r));
   }
 
   step() {

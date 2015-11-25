@@ -17,6 +17,7 @@ export default class Camera {
     this.speed = Math.PI/1000;
 
     this.eye = vec3.create();
+    this.position = vec3.create();
     this.view = mat4.create();
     this.proj = mat4.create();
     this.matrix = mat4.create();
@@ -60,8 +61,8 @@ export default class Camera {
     vec3.negate(this.eye, eye);
 
     let up = vec3.cross(right, right, eye);
-    let position = vec3.add(eye, vec3.scale(eye, eye, this.dist), this.origin);
+    this.position = vec3.add(eye, vec3.scale(eye, eye, this.dist), this.origin);
 
-    mat4.lookAt(this.view, position, this.origin, up);
+    mat4.lookAt(this.view, this.position, this.origin, up);
   }
 }
