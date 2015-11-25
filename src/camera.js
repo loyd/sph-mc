@@ -2,96 +2,52 @@ import {vec3, mat4} from 'gl-matrix';
 
 
 export default class Camera {
-  constructor(observable, origin) {
+  constructor(origin) {
     this.origin = origin;
     this.vAngle = Math.PI/6;
     this.hAngle = Math.PI/5;
     this.fov = Math.PI/4;
     this.aspect = 16/9;
     this.dist = 3;
-    this.zoom = 1;
+    this.curZoom = 1;
     this.minZoom = .3;
     this.maxZoom = 5;
     this.near = 0.001;
     this.far = 1000;
     this.speed = Math.PI/1000;
 
-    this.down = false;
-    this.dirty = true;
-    this.marker = {x: 0, y: 0};
-    this.mouse = {x: 0, y: 0};
-
     this.eye = vec3.create();
     this.view = mat4.create();
     this.proj = mat4.create();
     this.matrix = mat4.create();
     this.update();
-
-    observable.addEventListener('mousedown', e => this.onMouseDown(e));
-    window.addEventListener('mousemove', e => this.onMouseMove(e));
-    window.addEventListener('mouseup', e => this.onMouseUp(e));
-
-    let wheel = 'onwheel' in window ? 'wheel'
-              : 'onmousewheel' in window ? 'mousewheel'
-              : 'MozMousePixelScroll';
-
-    observable.addEventListener(wheel, e => this.onMouseWheel(e));
-  }
-
-  onMouseDown(e) {
-    this.down = true;
-    document.body.classList.add('camera');
-    this.marker.x = this.mouse.x = e.clientX;
-    this.marker.y = this.mouse.y = e.clientY;
-    e.preventDefault();
-  }
-
-  onMouseMove(e) {
-    if (!this.down)
-      return;
-
-    this.mouse.x = e.clientX;
-    this.mouse.y = e.clientY;
-
-    let dx = this.mouse.x - this.marker.x,
-        dy = this.mouse.y - this.marker.y;
-
-    this.hAngle -= dx * this.speed;
-    this.vAngle += dy * this.speed;
-
-    this.marker.x = this.mouse.x;
-    this.marker.y = this.mouse.y;
-    this.dirty = true;
-  }
-
-  onMouseUp(e) {
-    this.down = false;
-    document.body.classList.remove('camera');
-  }
-
-  onMouseWheel(e) {
-    let delta = e.deltaY || e.detail || e.wheelDelta;
-    this.zoom = Math.max(Math.min(this.zoom * (1 + delta*this.speed), this.maxZoom), this.minZoom);
-    this.dirty = true;
   }
 
   setAspect(aspect) {
     this.aspect = aspect;
-    this.dirty = true;
+    this.update();
+  }
+
+  rotate(dx, dy) {
+    this.vAngle += dy * this.speed;
+    this.hAngle -= dx * this.speed;
+    this.update();
+  }
+
+  zoom(dw) {
+    let newZoom = this.curZoom * (1 + dw * this.speed);
+    this.curZoom = Math.max(this.minZoom, Math.min(newZoom, this.maxZoom));
+    this.update();
   }
 
   update() {
-    if (!this.dirty)
-      return;
-
     this.calcProj();
     this.calcView();
     mat4.multiply(this.matrix, this.proj, this.view);
-    this.dirty = false;
   }
 
   calcProj() {
-    mat4.perspective(this.proj, this.fov/this.zoom, this.aspect, this.near, this.far);
+    mat4.perspective(this.proj, this.fov/this.curZoom, this.aspect, this.near, this.far);
   }
 
   calcView() {

@@ -2,8 +2,9 @@ import {mat4} from 'gl-matrix';
 
 import * as utils from './utils';
 import Camera from './camera';
-import {Sphere} from './geometry';
+import Mouse from './mouse';
 import mcCases from './mc_cases';
+import {Sphere} from './geometry';
 
 import simpleTmpl from './glsl/simple.vert';
 import cellTmpl from './glsl/cell.vert';
@@ -70,7 +71,12 @@ export default class Simulation {
     this.opacity = .3;
 
     this.sphere = new Sphere([.8, .2, .8], SPHERE_RADIUS, SPHERE_DETAIL);
-    this.camera = new Camera(gl.canvas, [.5, .5, .5]);
+
+    this.camera = new Camera([.5, .5, .5]);
+
+    this.mouse = new Mouse(gl.canvas)
+      .on('move', (dx, dy) => this.camera.rotate(dx, dy))
+      .on('wheel', dw => this.camera.zoom(dw));
 
     this.activeCells = 0;
 
@@ -361,8 +367,6 @@ export default class Simulation {
 
   render() {
     let {gl} = this;
-
-    this.camera.update();
 
     if (this.mode !== 'wireframe')
       this.generateSurface();
