@@ -253,7 +253,7 @@ export default class Simulation {
     let tiles = document.getElementById('tiles');
 
     let gl = this.gl;
-    let {RGB, RGBA, UNSIGNED_BYTE, NEAREST, LINEAR} = gl;
+    let {RGB, RGBA, UNSIGNED_BYTE, NEAREST, LINEAR, LINEAR_MIPMAP_LINEAR} = gl;
     let FLOAT = this.extensions.float.type;
 
     return {
@@ -275,7 +275,7 @@ export default class Simulation {
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
       normals: [0, 0, 0].map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
-      bbox: utils.createTextureFromImage(gl, RGB, LINEAR, tiles)
+      bbox: utils.createTextureFromImage(gl, RGB, LINEAR, LINEAR_MIPMAP_LINEAR, tiles)
     };
   }
 
