@@ -36,7 +36,7 @@ const DATA_TEX_SIZE = 1024;
 const CELL_XY_TEX_SIZE = 128;
 const CELL_Z_TEX_SIZE = 16;
 const TRIANGLES_TEX_SIZE = 1024;
-const SPHERE_RADIUS = .2;
+const SPHERE_RADIUS = .15;
 const SPHERE_DETAIL = 4;
 
 const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
@@ -47,7 +47,7 @@ export default class Simulation {
     this.gl = gl;
 
     this.gravity = -9.81;
-    this.deltaT = .005;
+    this.deltaT = .007;
 
     this.temperature = 20;
     this.density0 = 998.29;
@@ -57,7 +57,7 @@ export default class Simulation {
     this.restitution = 0;
 
     this.nParticles = 50000;
-    this.mass = .005;
+    this.mass = .01;
     this.ratio = .0457;
     this.mode = 'wireframe';
 
@@ -73,8 +73,8 @@ export default class Simulation {
     this.opacity = .3;
 
     this.bbox = new BBox();
-    this.sphere = new Sphere([.8, .2, .8], SPHERE_RADIUS, SPHERE_DETAIL);
-    this.camera = new Camera([.5, .5, .5]);
+    this.sphere = new Sphere([.8, .15, .8], SPHERE_RADIUS, SPHERE_DETAIL);
+    this.camera = new Camera([.5, .3, .5]);
 
     let interactive = false;
     this.mouse = new Mouse(gl.canvas)

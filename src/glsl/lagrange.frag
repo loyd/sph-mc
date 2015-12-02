@@ -26,8 +26,8 @@ uniform vec3 sphereCenter;
 
 varying vec2 coord;
 
-const vec3 boxCenter = vec3(0.5, 0.5, 0.5);
-const vec3 boxSize = vec3(0.49, 0.49, 0.49);
+const vec3 boxCenter = vec3(.5, .5, .5);
+const vec3 boxSize = vec3(.5, .5, .5);
 const float sphereRadius = {{sphereRadius}};
 const float sphereRadius2 = sphereRadius * sphereRadius;
 

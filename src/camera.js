@@ -8,12 +8,12 @@ export default class Camera {
     this.hAngle = Math.PI/5;
     this.fov = Math.PI/4;
     this.aspect = 16/9;
-    this.dist = 3;
+    this.dist = 2;
     this.curZoom = 1;
-    this.minZoom = .3;
+    this.minZoom = 1;
     this.maxZoom = 5;
-    this.near = 0.001;
-    this.far = 1000;
+    this.near = 0.01;
+    this.far = 100;
     this.speed = Math.PI/1000;
 
     this.eye = vec3.create();
