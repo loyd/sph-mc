@@ -4,7 +4,7 @@ import * as utils from './utils';
 import Camera from './camera';
 import Mouse from './mouse';
 import mcCases from './mc_cases';
-import {Sphere} from './geometry';
+import {BBox, Sphere} from './geometry';
 
 import simpleTmpl from './glsl/simple.vert';
 import cellTmpl from './glsl/cell.vert';
@@ -13,9 +13,11 @@ import particleTmpl from './glsl/particle.vert';
 import quadTmpl from './glsl/quad.vert';
 import traversalTmpl from './glsl/traversal.vert';
 import renderSurfaceTmpl from './glsl/render_surface.vert';
+import bboxTmpl from './glsl/bbox.vert';
 import sphereTmpl from './glsl/sphere.vert';
 
 import colorTmpl from './glsl/color.frag';
+import texturedTmpl from './glsl/textured.frag';
 import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
@@ -70,6 +72,7 @@ export default class Simulation {
     this.color = [.4, .53, .7];
     this.opacity = .3;
 
+    this.bbox = new BBox();
     this.sphere = new Sphere([.8, .2, .8], SPHERE_RADIUS, SPHERE_DETAIL);
     this.camera = new Camera([.5, .5, .5]);
 
@@ -129,6 +132,7 @@ export default class Simulation {
         quad = vs(quadTmpl),
         traversal = vs(traversalTmpl),
         renderSurface = vs(renderSurfaceTmpl),
+        bbox = vs(bboxTmpl),
         sphere = vs(sphereTmpl);
 
     let mean = fs(meanTmpl),
@@ -136,6 +140,7 @@ export default class Simulation {
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
+        textured = fs(texturedTmpl),
         spread = fs(spreadTmpl, cellConsts),
         node = fs(nodeTmpl, cellConsts),
         relevant = fs(relevantTmpl, cellConsts),
@@ -150,7 +155,7 @@ export default class Simulation {
       density: link(index2d, density),
       meanDensity: link(cell, meanDensity),
       lagrange: link(index2d, lagrange),
-      simple: link(simple, color),
+      wireframe: link(simple, color),
       particle: link(particle, color),
       activity: link(cell, color),
       spread: link(quad, spread),
@@ -161,6 +166,7 @@ export default class Simulation {
       compact: link(traversal, compact),
       triangleCreator: link(traversal, triangleCreator),
       renderSurface: link(renderSurface, classic),
+      bbox: link(bbox, textured),
       sphere: link(sphere, classic)
     };
   }
@@ -171,11 +177,6 @@ export default class Simulation {
       coords[ i*2 ] = ((i % DATA_TEX_SIZE) + .5)/DATA_TEX_SIZE;
       coords[i*2+1] = ((i / DATA_TEX_SIZE|0) + .5)/DATA_TEX_SIZE;
     }
-
-    let corners = [
-      0,0,0, 1,0,0, 1,0,0,  1,1,0, 1,1,0, 0,1,0,  0,1,0, 0,0,0, 0,0,1,  1,0,1, 1,0,1, 1,1,1,
-      1,1,1, 0,1,1, 0,1,1,  0,0,1, 0,0,0, 0,0,1,  1,0,0, 1,0,1, 1,1,0,  1,1,1, 0,1,0, 0,1,1
-    ];
 
     let quad = [-1, -1, 1, -1, -1, 1, 1, 1];
 
@@ -206,8 +207,12 @@ export default class Simulation {
         texCoord: {dims: 2, data: coords}
       }),
       bbox: utils.createBuffers(this.gl, {
-        position: {dims: 3, data: corners}
-      }),
+        position: {dims: 3, data: this.bbox.vertices},
+        texCoord: {dims: 2, data: this.bbox.texCoords}
+      }, this.bbox.faces),
+      bboxWireframe: utils.createBuffers(this.gl, {
+        position: {dims: 3, data: this.bbox.vertices}
+      }, this.bbox.edges),
       quad: utils.createBuffers(this.gl, {
         vertex: {dims: 2, data: quad}
       }),
@@ -245,8 +250,10 @@ export default class Simulation {
     for (let i = 0; i < mcCases.length; ++i)
       mcCasesTex[i*4] = mcCases[i];
 
+    let tiles = document.getElementById('tiles');
+
     let gl = this.gl;
-    let {RGBA, UNSIGNED_BYTE, NEAREST} = gl;
+    let {RGB, RGBA, UNSIGNED_BYTE, NEAREST, LINEAR} = gl;
     let FLOAT = this.extensions.float.type;
 
     return {
@@ -267,7 +274,8 @@ export default class Simulation {
       vertices: [0, 0, 0].map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
       normals: [0, 0, 0].map(_ =>
-        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT))
+        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
+      bbox: utils.createTextureFromImage(gl, RGB, LINEAR, tiles)
     };
   }
 
@@ -417,7 +425,7 @@ export default class Simulation {
       case 'wireframe':
         gl.viewport(0, 0, vw, vh);
         this.renderSphereWireframe();
-        this.renderBBox();
+        this.renderBBoxWireframe();
         this.renderParticles();
         break;
 
@@ -434,7 +442,7 @@ export default class Simulation {
         gl.viewport(-vw/4, 0, vw, vh);
         gl.scissor(0, 0, vw/2, vh);
         this.renderSphereWireframe();
-        this.renderBBox();
+        this.renderBBoxWireframe();
         this.renderParticles();
 
         gl.viewport(vw/4, 0, vw, vh);
@@ -451,7 +459,7 @@ export default class Simulation {
   }
 
   renderSphereWireframe() {
-    let [program, buffer] = [this.programs.simple, this.buffers.sphereWireframe];
+    let [program, buffer] = [this.programs.wireframe, this.buffers.sphereWireframe];
 
     this.gl.useProgram(program);
     utils.setUniforms(program, {
@@ -481,12 +489,13 @@ export default class Simulation {
     utils.setBuffersAndAttributes(this.gl, program, buffer);
 
     this.gl.enable(this.gl.CULL_FACE);
+    this.gl.cullFace(this.gl.BACK);
     this.gl.drawElements(this.gl.TRIANGLES, this.sphere.faces.length, this.gl.UNSIGNED_SHORT, 0);
     this.gl.disable(this.gl.CULL_FACE);
   }
 
-  renderBBox() {
-    let [program, buffer] = [this.programs.simple, this.buffers.bbox];
+  renderBBoxWireframe() {
+    let [program, buffer] = [this.programs.wireframe, this.buffers.bboxWireframe];
 
     this.gl.useProgram(program);
     utils.setUniforms(program, {
@@ -494,7 +503,22 @@ export default class Simulation {
       color: [1, 1, 1, 1]
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
-    this.gl.drawArrays(this.gl.LINES, 0, 24);
+    this.gl.drawElements(this.gl.LINES, this.bbox.edges.length, this.gl.UNSIGNED_SHORT, 0);
+  }
+
+  renderBBox() {
+    let [program, buffer] = [this.programs.bbox, this.buffers.bbox];
+
+    this.gl.useProgram(program);
+    utils.setUniforms(program, {
+      mvp: this.camera.matrix,
+      texture: this.textures.bbox
+    });
+    utils.setBuffersAndAttributes(this.gl, program, buffer);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.cullFace(this.gl.FRONT);
+    this.gl.drawElements(this.gl.TRIANGLES, this.bbox.faces.length, this.gl.UNSIGNED_SHORT, 0);
+    this.gl.disable(this.gl.CULL_FACE);
   }
 
   renderParticles() {
@@ -533,6 +557,7 @@ export default class Simulation {
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ZERO);
     gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
     gl.depthMask(false);
 
     gl.drawArrays(gl.TRIANGLES, 0, 12 * this.activeCells);
