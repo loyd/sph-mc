@@ -1,10 +1,14 @@
-attribute vec3 position;
+//#TODO: rename this!
+attribute vec3 aposition;
 
-uniform mat4 mvp;
+uniform vec3 center;
+uniform mat4 vp;
 
+varying vec3 position;
 varying vec3 normal;
 
 void main(void) {
-  normal = position;
-  gl_Position = mvp * vec4(position, 1.);
+  position = center + aposition;
+  normal = aposition;
+  gl_Position = vp * vec4(position, 1.);
 }
