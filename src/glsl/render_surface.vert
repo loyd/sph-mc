@@ -5,11 +5,11 @@ uniform highp sampler2D vertices[3];
 uniform highp sampler2D normals[3];
 uniform mat4 mvp;
 
+varying vec3 position;
 varying vec3 normal;
 
 void main(void) {
   int i = int(mod(index, 3.));
-  vec3 position;
 
   if (i == 0) {
     position = texture2D(vertices[0], texCoord).xyz;

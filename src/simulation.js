@@ -57,9 +57,9 @@ export default class Simulation {
     this.restitution = 0;
 
     this.nParticles = 50000;
-    this.mass = .01;
+    this.mass = .007;
     this.ratio = .0457;
-    this.mode = 'wireframe';
+    this.mode = 'mockup';
 
     this.spread = 3;
     this.nVoxels = 40;
@@ -69,6 +69,7 @@ export default class Simulation {
     this.diffuse = .15;
     this.specular = .8;
     this.lustreless = 10;
+    this.attenuation = .2;
     this.color = [.4, .53, .7];
     this.opacity = .3;
 
@@ -229,7 +230,7 @@ export default class Simulation {
         texCoord: {dims: 2, data: vertexCoords}
       }),
       sphere: utils.createBuffers(this.gl, {
-        position: {dims: 3, data: this.sphere.vertices}
+        aposition: {dims: 3, data: this.sphere.vertices}
       }, this.sphere.faces),
       sphereWireframe: utils.createBuffers(this.gl, {
         position: {dims: 3, data: this.sphere.vertices}
@@ -476,7 +477,8 @@ export default class Simulation {
 
     this.gl.useProgram(program);
     utils.setUniforms(program, {
-      mvp: mat4.translate(mat4.create(), this.camera.matrix, this.sphere.center),
+      center: this.sphere.center,
+      vp: this.camera.matrix,
       eye: this.camera.eye,
       ambient: this.ambient,
       diffuse: .25,
@@ -550,6 +552,7 @@ export default class Simulation {
       diffuse: this.diffuse,
       specular: this.specular,
       lustreless: this.lustreless,
+      attenuation: this.attenuation,
       color: this.color,
       opacity: this.opacity
     });
