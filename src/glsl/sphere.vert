@@ -6,6 +6,7 @@ uniform mat4 vp;
 
 varying vec3 position;
 varying vec3 normal;
+varying vec2 coord;
 
 void main(void) {
   position = center + aposition;

@@ -17,7 +17,6 @@ import bboxTmpl from './glsl/bbox.vert';
 import sphereTmpl from './glsl/sphere.vert';
 
 import colorTmpl from './glsl/color.frag';
-import texturedTmpl from './glsl/textured.frag';
 import meanTmpl from './glsl/mean.frag';
 import densityTmpl from './glsl/density.frag';
 import meanDensityTmpl from './glsl/mean_density.frag';
@@ -65,11 +64,11 @@ export default class Simulation {
     this.nVoxels = 40;
     this.range = .53;
 
-    this.ambient = .1;
+    this.ambient = .03;
     this.diffuse = .15;
     this.specular = .8;
     this.lustreless = 10;
-    this.attenuation = .2;
+    this.attenuation = .8;
     this.color = [.4, .53, .7];
     this.opacity = .3;
 
@@ -141,7 +140,6 @@ export default class Simulation {
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
-        textured = fs(texturedTmpl),
         spread = fs(spreadTmpl, cellConsts),
         node = fs(nodeTmpl, cellConsts),
         relevant = fs(relevantTmpl, cellConsts),
@@ -167,7 +165,7 @@ export default class Simulation {
       compact: link(traversal, compact),
       triangleCreator: link(traversal, triangleCreator),
       renderSurface: link(renderSurface, classic),
-      bbox: link(bbox, textured),
+      bbox: link(bbox, classic),
       sphere: link(sphere, classic)
     };
   }
@@ -208,7 +206,8 @@ export default class Simulation {
         texCoord: {dims: 2, data: coords}
       }),
       bbox: utils.createBuffers(this.gl, {
-        position: {dims: 3, data: this.bbox.vertices},
+        aposition: {dims: 3, data: this.bbox.vertices},
+        anormal: {dims: 3, data: this.bbox.normals},
         texCoord: {dims: 2, data: this.bbox.texCoords}
       }, this.bbox.faces),
       bboxWireframe: utils.createBuffers(this.gl, {
@@ -485,7 +484,8 @@ export default class Simulation {
       specular: .45,
       lustreless: 50,
       color: [.39, .24, .02],
-      opacity: 1
+      opacity: 1,
+      texture: null
     });
 
     utils.setBuffersAndAttributes(this.gl, program, buffer);
@@ -514,7 +514,14 @@ export default class Simulation {
     this.gl.useProgram(program);
     utils.setUniforms(program, {
       mvp: this.camera.matrix,
-      texture: this.textures.bbox
+      eye: this.camera.eye,
+      ambient: this.ambient,
+      diffuse: .4,
+      specular: .35,
+      lustreless: 80,
+      attenuation: this.attenuation,
+      texture: this.textures.bbox,
+      opacity: 1.
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
     this.gl.enable(this.gl.CULL_FACE);
@@ -554,7 +561,8 @@ export default class Simulation {
       lustreless: this.lustreless,
       attenuation: this.attenuation,
       color: this.color,
-      opacity: this.opacity
+      opacity: this.opacity,
+      texture: null
     });
 
     gl.enable(gl.BLEND);

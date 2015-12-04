@@ -7,6 +7,7 @@ uniform mat4 mvp;
 
 varying vec3 position;
 varying vec3 normal;
+varying vec2 coord;
 
 void main(void) {
   int i = int(mod(index, 3.));
