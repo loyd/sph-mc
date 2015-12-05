@@ -12,9 +12,10 @@ varying float idx;
 
 const float invSize = 1./{{totalSize}};
 
-vec2 index2D(vec3 cell) {
+float potential(vec3 cell) {
   vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));
-  return invSize * (cell.xy + {{xySize}}*zCoord + vec2(.5));
+  vec2 coord = invSize * (cell.xy + {{xySize}}*zCoord + vec2(.5));
+  return texture2D(potentials, coord).s;
 }
 
 void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float mcIdx) {
@@ -24,56 +25,30 @@ void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float
   vec4 m1 = vec4(equal(vec4(mcIdx), vec4(4., 5., 6., 7.)));
   vec4 m2 = vec4(equal(vec4(mcIdx), vec4(8., 9., 10., 11.)));
 
-  vec3 b0 = cell + m0.y * vec3(1., 0., 0.)
-                 + m0.z * vec3(1., 1., 0.)
-                 + m0.w * vec3(0., 1., 0.)
-                 + m1.x * vec3(0., 0., 1.)
-                 + m1.y * vec3(1., 0., 1.)
-                 + m1.z * vec3(1., 1., 1.)
-                 + m1.w * vec3(0., 1., 1.)
-                 + m2.x * vec3(0., 0., 0.)
-                 + m2.y * vec3(1., 0., 0.)
-                 + m2.z * vec3(1., 1., 0.)
-                 + m2.w * vec3(0., 1., 0.);
+  vec4 m0pm2 = m0 + m2;
+  vec4 m1pm2 = m1 + m2.yzwx;
 
-  vec3 b1 = cell + m0.x * vec3(1., 0., 0.)
-                 + m0.y * vec3(1., 1., 0.)
-                 + m0.z * vec3(0., 1., 0.)
-                 + m1.x * vec3(1., 0., 1.)
-                 + m1.y * vec3(1., 1., 1.)
-                 + m1.z * vec3(0., 1., 1.)
-                 + m1.w * vec3(0., 0., 1.)
-                 + m2.x * vec3(0., 0., 1.)
-                 + m2.y * vec3(1., 0., 1.)
-                 + m2.z * vec3(1., 1., 1.)
-                 + m2.w * vec3(0., 1., 1.);
+  vec3 b0 = cell + vec3(m0pm2.yw + m0pm2.zz, m1.x + m1.w) + m1.ywy + m1.zzz;
+  vec3 b1 = cell + vec3(m0.xz + m0.yy, m1pm2.z + m1pm2.w) + m1pm2.xzx + m1pm2.yyy;
 
-  float n0 = texture2D(potentials, index2D(b0)).s;
-  float n1 = texture2D(potentials, index2D(b1)).s;
+  float n0 = potential(b0);
+  float n1 = potential(b1);
 
   vec2 diff = vec2(range - n0, n1 - n0);
   vec3 mult = vec3(lessThan(abs(vec3(diff.x, range - n1, -diff.y)), vec3(0.)));
 
-  pos = mult.x*b0 + mult.y*b1 + mult.z*b0 + (1. - dot(mult, mult)) * mix(b0, b1, diff.x/diff.y);
+  pos = (mult.x + mult.z)*b0 + mult.y*b1 + (1. - dot(mult, mult)) * mix(b0, b1, diff.x/diff.y);
   pos = pos*cellSize + vec3(-cellSize);
 
-  vec2 deltaX = index2D(b0 + vec3(1., 0., 0.));
-  vec2 deltaY = index2D(b0 + vec3(0., 1., 0.));
-  vec2 deltaZ = index2D(b0 + vec3(0., 0., 1.));
+  vec3 norm0 = normalize(vec3(n0) - vec3(potential(b0 + vec3(1., 0., 0.)),
+                                         potential(b0 + vec3(0., 1., 0.)),
+                                         potential(b0 + vec3(0., 0., 1.))));
 
-  vec3 norm0 = normalize(vec3(n0 - texture2D(potentials, deltaX).s,
-                              n0 - texture2D(potentials, deltaY).s,
-                              n0 - texture2D(potentials, deltaZ).s));
+  vec3 norm1 = normalize(vec3(n1) - vec3(potential(b1 + vec3(1., 0., 0.)),
+                                         potential(b1 + vec3(0., 1., 0.)),
+                                         potential(b1 + vec3(0., 0., 1.))));
 
-  deltaX = index2D(b1 + vec3(1., 0., 0.));
-  deltaY = index2D(b1 + vec3(0., 1., 0.));
-  deltaZ = index2D(b1 + vec3(0., 0., 1.));
-
-  vec3 norm1 = normalize(vec3(n1 - texture2D(potentials, deltaX).s,
-                              n1 - texture2D(potentials, deltaY).s,
-                              n1 - texture2D(potentials, deltaZ).s));
-
-  norm = (n0*norm0 + n1*norm1) / (n0 + n1);
+  norm = mix(norm0, norm1, n1 / (n0 + n1));
 }
 
 void main(void) {
