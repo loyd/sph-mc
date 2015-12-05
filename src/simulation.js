@@ -31,15 +31,38 @@ import triangleCreatorTmpl from './glsl/triangle_creator.frag';
 import classicTmpl from './glsl/classic.frag';
 
 
-const DATA_TEX_SIZE = 1024;
-const CELL_XY_TEX_SIZE = 128;
-const CELL_Z_TEX_SIZE = 16;
-const TRIANGLES_TEX_SIZE = 1024;
-const SPHERE_RADIUS = .15;
-const SPHERE_DETAIL = 4;
+export const MAX_PARTICLES = 262144;
+export const MIN_RATIO = .01172;
+export const MAX_VOXELS_PER_SIDE = 64;
+export const MAX_TRIANGLES = 1048576;
+export const SPHERE_RADIUS = .15;
+export const SPHERE_DETAIL = 4;
 
-const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
-const CELLS_PYRAMID_LVLS = Math.log2(CELLS_TEX_SIZE);
+export const DATA_TEX_SIZE = 2**Math.ceil(Math.log2(MAX_PARTICLES)/2);
+export const CELL_XY_TEX_SIZE = 2**Math.ceil(Math.log2(3/(2*MIN_RATIO)));
+export const CELL_Z_TEX_SIZE = 2**Math.ceil(Math.log2(CELL_XY_TEX_SIZE)/2);
+export const CELLS_TEX_SIZE = CELL_XY_TEX_SIZE * CELL_Z_TEX_SIZE;
+export const VOXEL_XY_TEX_SIZE = 2**Math.ceil(Math.log2(MAX_VOXELS_PER_SIDE));
+export const VOXEL_Z_TEX_SIZE = 2**Math.ceil(Math.log2(VOXEL_XY_TEX_SIZE)/2);
+export const VOXELS_TEX_SIZE = VOXEL_XY_TEX_SIZE * VOXEL_Z_TEX_SIZE;
+export const VOXELS_PYRAMID_LVLS = Math.log2(VOXELS_TEX_SIZE);
+export const TRIANGLES_TEX_SIZE = 2**Math.ceil(Math.log2(MAX_TRIANGLES)/2);
+
+console.group('Limits');
+console.info('Max particles: %f', MAX_PARTICLES);
+console.info('Data tex size: %fx%1$f', DATA_TEX_SIZE);
+console.info('Min ratio: %f', MIN_RATIO);
+console.info('Cells shape: (%f, %1$f, %f)', CELL_XY_TEX_SIZE, CELL_Z_TEX_SIZE**2);
+console.info('Cells tex size: %fx%1$f', CELLS_TEX_SIZE);
+console.info('Max voxels per side: %f', MAX_VOXELS_PER_SIDE);
+console.info('Voxels shape: (%f, %1$f, %f)', VOXEL_XY_TEX_SIZE, VOXEL_Z_TEX_SIZE**2);
+console.info('Voxels tex size: %fx%1$f', VOXELS_TEX_SIZE);
+console.info('Histogram pyramid levels: %f', VOXELS_PYRAMID_LVLS);
+console.info('Max triangles: %f', MAX_TRIANGLES);
+console.info('Triangles tex size: %fx%1$f', TRIANGLES_TEX_SIZE);
+console.info('Sphere radius: %f, detail: %f', SPHERE_RADIUS, SPHERE_DETAIL);
+console.groupEnd('Limits');
+
 
 export default class Simulation {
   constructor(gl) {
@@ -121,12 +144,19 @@ export default class Simulation {
       zSize: CELL_Z_TEX_SIZE+'.',
       xySize: CELL_XY_TEX_SIZE+'.',
       totalSize: CELLS_TEX_SIZE+'.',
-      pyramidLvls: CELLS_PYRAMID_LVLS+'.',
       sphereRadius: SPHERE_RADIUS
+    };
+
+    let voxelConsts = {
+      zSize: VOXEL_Z_TEX_SIZE+'.',
+      xySize: VOXEL_XY_TEX_SIZE+'.',
+      totalSize: VOXELS_TEX_SIZE+'.',
+      pyramidLvls: VOXELS_PYRAMID_LVLS+'.',
     };
 
     let simple = vs(simpleTmpl),
         cell = vs(cellTmpl, cellConsts),
+        voxel = vs(cellTmpl, voxelConsts),
         index2d = vs(index2dTmpl),
         particle = vs(particleTmpl),
         quad = vs(quadTmpl),
@@ -140,13 +170,13 @@ export default class Simulation {
         meanDensity = fs(meanDensityTmpl),
         lagrange = fs(lagrangeTmpl, cellConsts),
         color = fs(colorTmpl),
-        spread = fs(spreadTmpl, cellConsts),
-        node = fs(nodeTmpl, cellConsts),
-        relevant = fs(relevantTmpl, cellConsts),
+        spread = fs(spreadTmpl, voxelConsts),
+        node = fs(nodeTmpl, voxelConsts),
+        relevant = fs(relevantTmpl, voxelConsts),
         pyramid = fs(pyramidTmpl),
         packFloat = fs(packFloatTmpl),
-        compact = fs(compactTmpl, cellConsts),
-        triangleCreator = fs(triangleCreatorTmpl, cellConsts),
+        compact = fs(compactTmpl, voxelConsts),
+        triangleCreator = fs(triangleCreatorTmpl, voxelConsts),
         classic = fs(classicTmpl);
 
     return {
@@ -156,7 +186,7 @@ export default class Simulation {
       lagrange: link(index2d, lagrange),
       wireframe: link(simple, color),
       particle: link(particle, color),
-      activity: link(cell, color),
+      activity: link(voxel, color),
       spread: link(quad, spread),
       node: link(quad, node),
       relevant: link(quad, relevant),
@@ -179,13 +209,13 @@ export default class Simulation {
 
     let quad = [-1, -1, 1, -1, -1, 1, 1, 1];
 
-    let indexes = new Float32Array(Math.max(CELLS_TEX_SIZE, TRIANGLES_TEX_SIZE)**2);
+    let indexes = new Float32Array(Math.max(VOXELS_TEX_SIZE, TRIANGLES_TEX_SIZE)**2);
 
-    let activeCellCoords = new Float32Array(2 * CELLS_TEX_SIZE**2);
-    for (let i = 0, n = CELLS_TEX_SIZE**2; i < n; ++i) {
+    let activeCellCoords = new Float32Array(2 * VOXELS_TEX_SIZE**2);
+    for (let i = 0, n = VOXELS_TEX_SIZE**2; i < n; ++i) {
       indexes[i] = i;
-      activeCellCoords[ 2*i ] = ((i % CELLS_TEX_SIZE) + .5)/CELLS_TEX_SIZE;
-      activeCellCoords[2*i+1] = ((i / CELLS_TEX_SIZE|0) + .5)/CELLS_TEX_SIZE;
+      activeCellCoords[ 2*i ] = ((i % VOXELS_TEX_SIZE) + .5)/VOXELS_TEX_SIZE;
+      activeCellCoords[2*i+1] = ((i / VOXELS_TEX_SIZE|0) + .5)/VOXELS_TEX_SIZE;
     }
 
     let triangleCoords = new Float32Array(2 * TRIANGLES_TEX_SIZE**2);
@@ -263,13 +293,13 @@ export default class Simulation {
       _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
       _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      activity: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      nodes: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      pyramid: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      pyramidLvls: Array(...Array(CELLS_PYRAMID_LVLS)).map((_, i) =>
+      activity: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      nodes: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      pyramid: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      pyramidLvls: Array(...Array(VOXELS_PYRAMID_LVLS)).map((_, i) =>
         utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
       totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, UNSIGNED_BYTE),
-      traversal: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      traversal: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
       mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, FLOAT, mcCasesTex),
       vertices: [0, 0, 0].map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
@@ -623,7 +653,7 @@ export default class Simulation {
   createHystoPyramid() {
     let {gl} = this;
 
-    let lvl = CELLS_PYRAMID_LVLS;
+    let lvl = VOXELS_PYRAMID_LVLS;
     let offset = 0;
 
     while (lvl --> 0) {
@@ -635,7 +665,7 @@ export default class Simulation {
 
       this.drawQuad(this.programs.pyramid, this.framebuffers.pyramidLvls[lvl], {
         data: this.textures.pyramidLvls[lvl + 1] || this.textures.activity,
-        size: (1 << CELLS_PYRAMID_LVLS - lvl) / CELLS_TEX_SIZE
+        size: (1 << VOXELS_PYRAMID_LVLS - lvl) / VOXELS_TEX_SIZE
       });
 
       gl.bindTexture(gl.TEXTURE_2D, this.textures.pyramid);
@@ -649,13 +679,13 @@ export default class Simulation {
     // Read the total active cells.
     this.drawQuad(this.programs.packFloat, this.framebuffers.totalActive, {
       data: this.textures.pyramidLvls[0],
-      invMax: CELLS_TEX_SIZE**-2
+      invMax: VOXELS_TEX_SIZE**-2
     });
 
     let pixels = new Uint8Array(4);
     this.gl.readPixels(0, 0, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
     let activeCells = (pixels[0]  + pixels[1]/255 + pixels[2]/65025 + pixels[3]/160581375);
-    activeCells *= CELLS_TEX_SIZE**2 / 255;
+    activeCells *= VOXELS_TEX_SIZE**2 / 255;
     this.activeCells = Math.round(activeCells);
   }
 
