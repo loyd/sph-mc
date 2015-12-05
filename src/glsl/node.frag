@@ -3,25 +3,24 @@ precision highp sampler2D;
 
 uniform sampler2D cells;
 
-float hasParticles(vec3 cell) {
-  vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));
-  vec2 cellCoord = (cell.xy + {{xySize}}*zCoord + vec2(.5)) / {{totalSize}};
-  return texture2D(cells, cellCoord).s;
+const float dXY = 1. / {{totalSize}};
+const float dZ = 1. / {{zSize}};
+
+vec2 subZ(vec2 cell2D) {
+  return vec2(mod(cell2D.x + 1. - dZ, 1.), cell2D.y - dZ * step(cell2D.x, dZ));
 }
 
 void main(void) {
-  //#TODO: what about 2d -> 2d instead of 2d -> 3d -> 2d?
-  vec2 cell2D = floor(gl_FragCoord.xy);
-  vec3 cell = vec3(mod(cell2D, {{xySize}}), dot(floor(cell2D / {{xySize}}), vec2(1., {{zSize}})));
+  vec2 cell2D = gl_FragCoord.xy * dXY;
 
-  float value = hasParticles(cell)
-              + hasParticles(cell + vec3(-1., -1., -1.))
-              + hasParticles(cell + vec3( 0., -1., -1.))
-              + hasParticles(cell + vec3( 0.,  0., -1.))
-              + hasParticles(cell + vec3(-1.,  0., -1.))
-              + hasParticles(cell + vec3(-1., -1.,  0.))
-              + hasParticles(cell + vec3( 0., -1.,  0.))
-              + hasParticles(cell + vec3(-1.,  0.,  0.));
+  float value = texture2D(cells, cell2D).s
+              + texture2D(cells, subZ(cell2D + vec2(-dXY, -dXY))).s
+              + texture2D(cells, subZ(cell2D + vec2( 0., -dXY))).s
+              + texture2D(cells, subZ(cell2D + vec2( 0.,  0.))).s
+              + texture2D(cells, subZ(cell2D + vec2(-dXY,  0.))).s
+              + texture2D(cells, cell2D + vec2(-dXY)).s
+              + texture2D(cells, cell2D + vec2( 0., -dXY)).s
+              + texture2D(cells, cell2D + vec2(-dXY,  0.)).s;
 
   gl_FragColor = vec4(value * .125, 0., 0., 1.);
 }
