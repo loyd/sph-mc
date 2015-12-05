@@ -10,7 +10,7 @@ export default class Camera {
     this.aspect = 16/9;
     this.dist = 2;
     this.curZoom = 1;
-    this.minZoom = 1;
+    this.minZoom = .5;
     this.maxZoom = 5;
     this.near = 0.01;
     this.far = 100;

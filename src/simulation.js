@@ -342,6 +342,10 @@ export default class Simulation {
     let mx = (this.mouse.cursor.x / this.gl.drawingBufferWidth) * 2 - 1;
     let my = -(this.mouse.cursor.y / this.gl.drawingBufferHeight) * 2 + 1;
     let [cx, cy] = vec3.transformMat4(vec3.create(), this.sphere.center, this.camera.matrix);
+
+    if (this.mode === 'dual')
+      mx += mx < 0 ? .5 : -.5;
+
     let r2 = this.sphere.radius**2;
     let d2 = vec3.sqrDist(this.sphere.center, this.camera.position);
     let fovy = this.camera.fov/this.camera.curZoom;
