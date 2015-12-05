@@ -95,6 +95,10 @@ export default class Simulation {
     this.color = [.4, .53, .7];
     this.opacity = .3;
 
+    this.wait = {
+      nParticles: this.nParticles
+    };
+
     this.bbox = new BBox();
     this.sphere = new Sphere([.8, .15, .8], SPHERE_RADIUS, SPHERE_DETAIL);
     this.camera = new Camera([.5, .3, .5]);
@@ -331,6 +335,28 @@ export default class Simulation {
                                             ...this.textures.vertices,
                                             ...this.textures.normals)
     };
+  }
+
+  restart() {
+    let {gl} = this;
+    let FLOAT = this.extensions.float.type;
+
+    let nParticles = this.wait.nParticles;
+    let width = this.textures.positions.size;
+    let height = Math.ceil(nParticles / width);
+    let positions = new Float32Array(4 * width * height);
+
+    utils.fillTexture(gl, this.textures.velDens, gl.RGBA, FLOAT, positions);
+
+    let volume = Math.pow(this.mass * nParticles / this.density0, 1/3);
+    for (let i = 0, n = 4 * nParticles; i < n; i += 4) {
+      positions[ i ] = Math.random() * volume;
+      positions[i+1] = 1 - Math.random() * volume;
+      positions[i+2] = Math.random() * volume;
+    }
+
+    utils.fillTexture(gl, this.textures.positions, gl.RGBA, FLOAT, positions);
+    this.nParticles = nParticles;
   }
 
   resize() {

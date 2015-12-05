@@ -4,6 +4,7 @@ import assert from 'assert';
 const useRuLang = (window.navigator.language || window.navigator.userLanguage) === 'ru';
 
 const map = {
+  'Restart': 'Перезапуск',
   'Environment': 'Среда',
   'Gravity': 'Гравитация',
   'Time step': 'Временной шаг',

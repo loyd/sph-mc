@@ -7,6 +7,8 @@ export default class GUI {
   constructor(simulation) {
     let gui = this.gui = new dat.GUI();
 
+    gui.add(simulation, 'restart').name(L`Restart`);
+
     let env = this.env = gui.addFolder(L`Environment`);
     env.add(simulation, 'gravity', -15, 0, .01).name(L`Gravity`);
     env.add(simulation, 'deltaT', .002, .02, .0001).name(L`Time step`);
@@ -22,7 +24,7 @@ export default class GUI {
     physics.open();
 
     let sph = this.sph = gui.addFolder(L`SPH`);
-    sph.add(simulation, 'nParticles', 5000, 250000, 5000).name(L`Particle count`);
+    sph.add(simulation.wait, 'nParticles', 5000, 250000, 5000).name(L`Particle count`);
     sph.add(simulation, 'mass', .0005, .01, .0005).name(L`Mass of particle`);
     sph.add(simulation, 'ratio', .02, .1, .005).name(L`Support radius`);
     sph.add(simulation, 'mode', {

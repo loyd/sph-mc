@@ -212,6 +212,13 @@ export function createTextureFromImage(gl, format, magFilter, minFilter, image) 
   return texture;
 }
 
+export function fillTexture(gl, texture, format, type, data) {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  let [w, h] = [texture.size, data.length / texture.size / 4];
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, format, type, data);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
 export function createFramebuffer(gl, texture) {
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
