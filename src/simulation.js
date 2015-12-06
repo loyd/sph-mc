@@ -85,7 +85,7 @@ export default class Simulation {
 
     this.spread = 3;
     this.nVoxels = 40;
-    this.range = .53;
+    this.isolevel = .53;
 
     this.ambient = .03;
     this.diffuse = .15;
@@ -676,7 +676,7 @@ export default class Simulation {
   evaluateRelevant() {
     this.drawQuad(this.programs.relevant, this.framebuffers.activity, {
       nodes: this.textures.nodes,
-      range: this.range
+      isolevel: this.isolevel
     });
   }
 
@@ -731,7 +731,7 @@ export default class Simulation {
     this.drawPoints(this.programs.triangleCreator, this.framebuffers.triangles,
                     this.buffers.creator, {
       cellSize: 1/this.nVoxels,
-      range: this.range,
+      isolevel: this.isolevel,
       potentials: this.textures.nodes,
       traversal: this.textures.traversal,
       mcCases: this.textures.mcCases

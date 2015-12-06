@@ -3,7 +3,7 @@ precision highp float;
 precision highp sampler2D;
 
 uniform float cellSize;
-uniform float range;
+uniform float isolevel;
 uniform sampler2D potentials;
 uniform sampler2D traversal;
 uniform sampler2D mcCases;
@@ -34,8 +34,8 @@ void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float
   float n0 = potential(b0);
   float n1 = potential(b1);
 
-  vec2 diff = vec2(range - n0, n1 - n0);
-  vec3 mult = vec3(lessThan(abs(vec3(diff.x, range - n1, -diff.y)), vec3(0.)));
+  vec2 diff = vec2(isolevel - n0, n1 - n0);
+  vec3 mult = vec3(lessThan(abs(vec3(diff.x, isolevel - n1, -diff.y)), vec3(0.)));
 
   pos = (mult.x + mult.z)*b0 + mult.y*b1 + (1. - dot(mult, mult)) * mix(b0, b1, diff.x/diff.y);
   pos = pos*cellSize + vec3(-cellSize);

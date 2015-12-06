@@ -1,7 +1,7 @@
 import assert from 'assert';
 
 
-const useRuLang = (window.navigator.language || window.navigator.userLanguage) === 'ru';
+const useRuLang = true||(window.navigator.language || window.navigator.userLanguage) === 'ru';
 
 const map = {
   'Restart': 'Перезапуск',
@@ -24,9 +24,9 @@ const map = {
   'mockup': 'модель',
   'dual': 'двойной',
   'MC': 'ШК',
-  'Spread': 'Сглаживание поверхности',
+  'Spread': 'Сглаживание',
   'Voxel count': 'Кол-во вокселей',
-  'Range': 'Предел применения',
+  'Isosurface level': 'Уровень изопов.',
   'Optics': 'Оптика',
   'Ambient': 'Фоновое осв.',
   'Diffuse': 'Рассеянное осв.',

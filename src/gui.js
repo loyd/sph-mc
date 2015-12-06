@@ -37,7 +37,7 @@ export default class GUI {
     let mc = this.mc = gui.addFolder(L`MC`);
     mc.add(simulation, 'spread', 0, 5, 1).name(L`Spread`);
     mc.add(simulation, 'nVoxels', 0, 70, 1).name(L`Voxel count`);
-    mc.add(simulation, 'range', .2, .99, .01).name(L`Range`);
+    mc.add(simulation, 'isolevel', .2, .99, .01).name(L`Isosurface level`);
     mc.open();
 
     let material = this.material = gui.addFolder(L`Optics`);
