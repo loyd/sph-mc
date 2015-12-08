@@ -4,7 +4,7 @@ uniform vec3 eye;
 uniform float ambient;
 uniform float diffuse;
 uniform float specular;
-uniform float lustreless;
+uniform float shininess;
 uniform float attenuation;
 uniform sampler2D texture;
 uniform vec3 color;
@@ -29,7 +29,7 @@ void main(void) {
   vec3 phong = base * diffuse * max(lightProj, 0.);
 
   if (lightProj > 0.)
-    phong += specular * pow(max(dot(eye, reflect(toLight, norm)), 0.), lustreless);
+    phong += specular * pow(max(dot(eye, reflect(toLight, norm)), 0.), shininess);
 
   phong *= 1. / (1. + attenuation * distToLight2);
   phong += vec3(base * ambient);

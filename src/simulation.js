@@ -72,9 +72,8 @@ export default class Simulation {
     this.deltaT = .007;
     this.paused = false;
 
-    this.temperature = 20;
     this.density0 = 998.29;
-    this.viscosity = 3;
+    this.viscosity = 3.5;
     this.pressureK = 3;
     this.tension = .0728;
     this.restitution = 0;
@@ -91,7 +90,7 @@ export default class Simulation {
     this.ambient = .03;
     this.diffuse = .15;
     this.specular = .8;
-    this.lustreless = 10;
+    this.shininess = 10;
     this.attenuation = .8;
     this.color = [.4, .53, .7];
     this.opacity = .3;
@@ -550,7 +549,7 @@ export default class Simulation {
       ambient: this.ambient,
       diffuse: .25,
       specular: .45,
-      lustreless: 50,
+      shininess: 20,
       color: [.39, .24, .02],
       opacity: 1,
       texture: null
@@ -586,7 +585,7 @@ export default class Simulation {
       ambient: this.ambient,
       diffuse: .4,
       specular: .35,
-      lustreless: 80,
+      shininess: 80,
       attenuation: this.attenuation,
       texture: this.textures.bbox,
       opacity: 1.
@@ -626,7 +625,7 @@ export default class Simulation {
       ambient: this.ambient,
       diffuse: this.diffuse,
       specular: this.specular,
-      lustreless: this.lustreless,
+      shininess: this.shininess,
       attenuation: this.attenuation,
       color: this.color,
       opacity: this.opacity,

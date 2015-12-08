@@ -18,7 +18,6 @@ export default class GUI {
     env.open();
 
     let physics = this.physics = gui.addFolder(L`Fluid physics`);
-    physics.add(simulation, 'temperature', 0, 80, 5).name(L`Temperature`);
     physics.add(simulation, 'density0', 100, 5000, .01).name(L`Density`);
     physics.add(simulation, 'viscosity', 1, 50, .1).name(L`Viscosity`);
     physics.add(simulation, 'pressureK', .5, 10, .5).name(L`Gas stiffness`);
@@ -47,7 +46,7 @@ export default class GUI {
     material.add(simulation, 'ambient', 0, 1, .01).name(L`Ambient`);
     material.add(simulation, 'diffuse', 0, 1, .01).name(L`Diffuse`);
     material.add(simulation, 'specular', 0, 1, .01).name(L`Specular`);
-    material.add(simulation, 'lustreless', 0, 80, 1).name(L`Lustreless`);
+    material.add(simulation, 'shininess', 0, 80, 1).name(L`Shininess`);
 
     let proxy = {color: simulation.color.map(c => c * 255)};
     let h = dat.color.color.math.component_from_hex;

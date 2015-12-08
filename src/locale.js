@@ -11,7 +11,6 @@ const map = {
   'Gravity': 'Гравитация',
   'Time step': 'Временной шаг',
   'Fluid physics': 'Хар-ки жидкости',
-  'Temperature': 'Температура',
   'Density': 'Плотность',
   'Viscosity': 'Вязкость',
   'Gas stiffness': 'Жёсткость',
@@ -33,7 +32,7 @@ const map = {
   'Ambient': 'Фоновое осв.',
   'Diffuse': 'Рассеянное осв.',
   'Specular': 'Зеркальное осв.',
-  'Lustreless': 'Матовость',
+  'Shininess': 'Глянцевость',
   'Color': 'Цвет',
   'Opacity': 'Непрозрачность'
 };
