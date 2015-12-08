@@ -361,6 +361,9 @@ export default class Simulation {
 
     utils.fillTexture(gl, this.textures.positions, gl.RGBA, FLOAT, positions);
     this.nParticles = nParticles;
+
+    if (this.paused && this.mode !== 'wireframe')
+      this.generateSurface();
   }
 
   resize() {
