@@ -70,6 +70,7 @@ export default class Simulation {
 
     this.gravity = -9.81;
     this.deltaT = .007;
+    this.paused = false;
 
     this.temperature = 20;
     this.density0 = 998.29;
@@ -337,6 +338,10 @@ export default class Simulation {
     };
   }
 
+  pauseResume() {
+    this.paused = !this.paused;
+  }
+
   restart() {
     let {gl} = this;
     let FLOAT = this.extensions.float.type;
@@ -401,6 +406,9 @@ export default class Simulation {
   }
 
   step() {
+    if (this.paused)
+      return;
+
     this.evaluateMeans();
     this.evaluateDensities();
     this.evaluateMeanDensities();
@@ -471,7 +479,7 @@ export default class Simulation {
   render() {
     let {gl} = this;
 
-    if (this.mode !== 'wireframe')
+    if (this.mode !== 'wireframe' && !this.paused)
       this.generateSurface();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

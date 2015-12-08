@@ -8,6 +8,9 @@ export default class GUI {
     let gui = this.gui = new dat.GUI();
 
     gui.add(simulation, 'restart').name(L`Restart`);
+    gui.add(simulation, 'pauseResume').name(L`Pause`).onChange(function() {
+      this.name(simulation.paused ? L`Pause` : L`Resume`);
+    });
 
     let env = this.env = gui.addFolder(L`Environment`);
     env.add(simulation, 'gravity', -15, 0, .01).name(L`Gravity`);
