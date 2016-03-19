@@ -196,6 +196,8 @@ export function createTexture(gl, size, format, filter, type, data = null) {
 }
 
 export function createTextureFromImage(gl, format, magFilter, minFilter, image) {
+  assert(image.complete);
+
   let texture = gl.createTexture();
 
   gl.bindTexture(gl.TEXTURE_2D, texture);

@@ -4,12 +4,15 @@ import assert from 'assert';
 const useRuLang = (window.navigator.language || window.navigator.userLanguage) === 'ru';
 
 const map = {
+  'Simulation': 'Симуляция',
+  'Rendering': 'Визуализация',
   'Restart': 'Перезапуск',
   'Pause': 'Приостановить',
   'Resume': 'Продолжить',
   'Environment': 'Среда',
   'Gravity': 'Гравитация',
   'Time step': 'Временной шаг',
+  'Real-time': 'В реальном времени',
   'Fluid physics': 'Хар-ки жидкости',
   'Density': 'Плотность',
   'Viscosity': 'Вязкость',
@@ -37,7 +40,7 @@ const map = {
   'Opacity': 'Непрозрачность'
 };
 
-export default function(string) {
+export default function L(string) {
   assert.equal(string.length, 1);
   assert(string[0] in map);
 

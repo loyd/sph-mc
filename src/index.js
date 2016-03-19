@@ -3,14 +3,22 @@ import Stats from 'stats.js';
 import './polyfill';
 import GUI from './gui';
 import Simulation from './simulation';
+import L from './locale';
 
 
-let canvas = document.querySelector('#area');
+/*
+ * Initialization of the simulation.
+ */
+let canvas = document.getElementById('area');
+let tiles = document.getElementById('tiles');
 let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-let simulation = new Simulation(gl);
+let simulation = new Simulation(gl, {tiles});
 let gui = new GUI(simulation);
 
+/*
+ * Resize handling.
+ */
 window.addEventListener('resize', adjustCanvasSize);
 adjustCanvasSize();
 
@@ -21,34 +29,23 @@ function adjustCanvasSize() {
   simulation.resize();
 }
 
+/*
+ * Statistics initialization.
+ */
+let stats = document.getElementById('stats');
+
+stats.appendChild(document.createTextNode(L`Simulation`));
 let logicStats = new Stats();
-document.body.appendChild(logicStats.domElement);
+stats.appendChild(logicStats.domElement);
 
+stats.appendChild(document.createTextNode(L`Rendering`));
 let renderStats = new Stats();
-document.body.appendChild(renderStats.domElement);
+stats.appendChild(renderStats.domElement);
 
-//let past = performance.now();
-//setImmediate(function logicLoop() {
-  //let now = performance.now();
-
-  //if (now - past >= simulation.deltaT*1000) {
-    //if (simulation.deltaT > 0.004)
-      //setTimeout(logicLoop, simulation.deltaT);
-    //else
-      //setImmediate(logicLoop);
-
-    //past = now;
-
-    //logicStats.update();
-    //simulation.step();
-  //} else
-    //setImmediate(logicLoop);
-//});
-
-const DELTA_THRESHOLD = 1000/15;
-
+/*
+ * Run the simulation.
+ */
 let past;
-let live = true;
 
 requestAnimationFrame(function loop(now) {
   if (!past) past = now;
@@ -56,12 +53,7 @@ requestAnimationFrame(function loop(now) {
   if (!document.hidden) {
     let delta = now - past;
 
-    if (delta > DELTA_THRESHOLD && live) {
-      live = false;
-      console.info('Realtime simulation is imposible.');
-    }
-
-    if (live) {
+    if (simulation.realtime) {
       let amount = delta / (simulation.deltaT*1000) | 0;
       now -= delta % (simulation.deltaT*1000);
 

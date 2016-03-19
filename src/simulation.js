@@ -65,11 +65,12 @@ console.groupEnd('Limits');
 
 
 export default class Simulation {
-  constructor(gl) {
+  constructor(gl, resources) {
     this.gl = gl;
 
     this.gravity = -9.81;
     this.deltaT = .007;
+    this.realtime = false;
     this.paused = false;
 
     this.density0 = 998.29;
@@ -116,7 +117,7 @@ export default class Simulation {
     this.extensions = this.getExtensions();
     this.programs = this.createPrograms();
     this.buffers = this.createBuffers();
-    this.textures = this.createTextures();
+    this.textures = this.createTextures(resources);
     this.framebuffers = this.createFramebuffers();
   }
 
@@ -271,7 +272,7 @@ export default class Simulation {
     };
   }
 
-  createTextures() {
+  createTextures(resources) {
     let positions = new Float32Array(4 * DATA_TEX_SIZE*DATA_TEX_SIZE);
     let volume = Math.pow(this.mass * this.nParticles / this.density0, 1/3);
     for (let i = 0, n = 4 * this.nParticles; i < n; i += 4) {
@@ -283,8 +284,6 @@ export default class Simulation {
     let mcCasesTex = new Float32Array(4*64*64);
     for (let i = 0; i < mcCases.length; ++i)
       mcCasesTex[i*4] = mcCases[i];
-
-    let tiles = document.getElementById('tiles');
 
     let gl = this.gl;
     let {RGB, RGBA, UNSIGNED_BYTE, NEAREST, LINEAR, LINEAR_MIPMAP_LINEAR} = gl;
@@ -309,7 +308,7 @@ export default class Simulation {
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
       normals: [0, 0, 0].map(_ =>
         utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
-      bbox: utils.createTextureFromImage(gl, RGB, LINEAR, LINEAR_MIPMAP_LINEAR, tiles)
+      bbox: utils.createTextureFromImage(gl, RGB, LINEAR, LINEAR_MIPMAP_LINEAR, resources.tiles)
     };
   }
 

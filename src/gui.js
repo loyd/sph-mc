@@ -15,6 +15,7 @@ export default class GUI {
     let env = this.env = gui.addFolder(L`Environment`);
     env.add(simulation, 'gravity', -15, 0, .01).name(L`Gravity`);
     env.add(simulation, 'deltaT', .002, .02, .0001).name(L`Time step`);
+    env.add(simulation, 'realtime').name(L`Real-time`);
     env.open();
 
     let physics = this.physics = gui.addFolder(L`Fluid physics`);
