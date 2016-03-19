@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+
+<title>SPH + MC</title>
+
+<script src="bundle.js" defer></script>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: black;
+    color: white;
+    font: 11px 'Lucida Grande', sans-serif;
+  }
+
+  #tiles {
+    display: none;
+  }
+
+  .mouse, .mouse * {
+    cursor: pointer !important;
+  }
+
+  #area {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+<body>
+  <img id="tiles" src="tiles.jpg">
+  <canvas id="area"></canvas>
+  <div id="stats"></div>
+</body>
