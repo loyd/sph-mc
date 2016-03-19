@@ -13881,6 +13881,10 @@ var Mouse = function (_EventEmitter) {
     observable.addEventListener('wheel', function (e) {
       return _this.onMouseWheel(e);
     });
+
+    var bodyStyle = getComputedStyle(observable);
+    _this.lineHeight = parseInt(bodyStyle.fontSize, 10);
+    _this.pageHeight = parseInt(bodyStyle.height, 10);
     return _this;
   }
 
@@ -13919,7 +13923,8 @@ var Mouse = function (_EventEmitter) {
   }, {
     key: 'onMouseWheel',
     value: function onMouseWheel(e) {
-      this.emit('wheel', e.deltaY);
+      var deltaY = e.deltaMode === 0 ? e.deltaY : e.deltaMode === 1 ? this.lineHeight * e.deltaY : this.pageHeight * e.deltaY;
+      this.emit('wheel', deltaY);
     }
   }]);
 
