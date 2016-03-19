@@ -1,15 +1,7 @@
 //#TODO: What about core-js (babel/polyfill)?
-import 'setimmediate';
 import dat from 'dat-gui';
-import now from 'performance-now';
 import raf from 'raf';
 
-
-if (!performance)
-  window.performance = {now};
-
-if (!performance.now)
-  performance.now = now;
 
 if (!requestAnimationFrame)
   window.requestAnimationFrame = raf;
@@ -19,7 +11,7 @@ if (!Math.log2)
 
 // Fix step and precision bugs in dat.gui.
 let buggyAdd = dat.gui.GUI.prototype.add;
-dat.gui.GUI.prototype.add = function(object, property) {
+dat.gui.GUI.prototype.add = function (object, property) {
   let ctrl = buggyAdd.apply(this, arguments);
 
   let step = arguments[4];
@@ -35,4 +27,3 @@ dat.gui.GUI.prototype.add = function(object, property) {
 
   return ctrl;
 };
-
