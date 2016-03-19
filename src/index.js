@@ -6,70 +6,81 @@ import Simulation from './simulation';
 import L from './locale';
 
 
-/*
- * Initialization of the simulation.
- */
-let canvas = document.getElementById('area');
-let tiles = document.getElementById('tiles');
-let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+init();
 
-let simulation = new Simulation(gl, {tiles});
-let gui = new GUI(simulation);
+function init() {
+  let canvas = document.getElementById('area');
+  let tiles = document.getElementById('tiles');
 
-/*
- * Resize handling.
- */
-window.addEventListener('resize', adjustCanvasSize);
-adjustCanvasSize();
+  tiles.complete ? onload() : tiles.onload = onload;
 
-function adjustCanvasSize() {
-  let factor = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(canvas.clientWidth * factor);
-  canvas.height = Math.floor(canvas.clientHeight * factor);
-  simulation.resize();
+  function onload() {
+    let simulation = initSimulation(canvas, tiles);
+    let stats = initStats();
+
+    runSimulation(canvas, simulation, stats);
+  };
 }
 
-/*
- * Statistics initialization.
- */
-let stats = document.getElementById('stats');
+function initSimulation(canvas, tiles) {
+  let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  let simulation = new Simulation(gl, {tiles});
+  let gui = new GUI(simulation);
 
-stats.appendChild(document.createTextNode(L`Simulation`));
-let logicStats = new Stats();
-stats.appendChild(logicStats.domElement);
+  window.addEventListener('resize', adjustCanvasSize);
+  adjustCanvasSize();
 
-stats.appendChild(document.createTextNode(L`Rendering`));
-let renderStats = new Stats();
-stats.appendChild(renderStats.domElement);
-
-/*
- * Run the simulation.
- */
-let past;
-
-requestAnimationFrame(function loop(now) {
-  if (!past) past = now;
-
-  if (!document.hidden) {
-    let delta = now - past;
-
-    if (simulation.realtime) {
-      let amount = delta / (simulation.deltaT*1000) | 0;
-      now -= delta % (simulation.deltaT*1000);
-
-      for (let i = 0; i < amount; ++i) {
-        simulation.step();
-        logicStats.update();
-      }
-    } else {
-      simulation.step();
-      logicStats.update();
-    }
-
-    simulation.render();
-    renderStats.update();
+  function adjustCanvasSize() {
+    let factor = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(canvas.clientWidth * factor);
+    canvas.height = Math.floor(canvas.clientHeight * factor);
+    simulation.resize();
   }
 
-  past = now;
-  requestAnimationFrame(loop, canvas);
-}, canvas);
+  return simulation;
+}
+
+function initStats() {
+  let stats = document.getElementById('stats');
+
+  stats.appendChild(document.createTextNode(L`Simulation`));
+  let logic = new Stats();
+  stats.appendChild(logic.domElement);
+
+  stats.appendChild(document.createTextNode(L`Rendering`));
+  let render = new Stats();
+  stats.appendChild(render.domElement);
+
+  return {logic, render};
+}
+
+function runSimulation(canvas, simulation, stats) {
+  let past;
+
+  requestAnimationFrame(function loop(now) {
+    if (!past) past = now;
+
+    if (!document.hidden) {
+      let delta = now - past;
+
+      if (simulation.realtime) {
+        let amount = delta / (simulation.deltaT*1000) | 0;
+        now -= delta % (simulation.deltaT*1000);
+
+        for (let i = 0; i < amount; ++i) {
+          simulation.step();
+          stats.logic.update();
+        }
+      } else {
+        simulation.step();
+        stats.logic.update();
+      }
+
+      simulation.render();
+      stats.render.update();
+    }
+
+    past = now;
+    requestAnimationFrame(loop, canvas);
+  }, canvas);
+}
