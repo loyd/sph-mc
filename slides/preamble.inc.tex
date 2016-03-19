@@ -1,0 +1,21 @@
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% Times, если стоит texlive-scalable-cyrfonts.
+\IfFileExists{cyrtimes.sty} {
+  \usepackage{cyrtimes}
+}
+
+% Отключить клавиши навигации.
+\setbeamertemplate{navigation symbols}{}
+
+% Оформление.
+\usetheme{CambridgeUS}
+\usecolortheme{seahorse}
+\usefonttheme[onlymath]{serif}
+
+% Уменьшить отступ перед формулами.
+%\addtobeamertemplate{block begin}{\setlength\abovedisplayskip{4pt}}
+
+\graphicspath{{assets/}}
+
