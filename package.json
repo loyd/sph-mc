@@ -31,9 +31,10 @@
   },
 
   "scripts": {
-    "build": "browserify src -d -o bundle.js",
-    "watch": "watchify src -d -o bundle.js",
-    "live": "browser-sync start --files 'index.html, bundle.js' --server --no-open",
-    "clean": "rm -f bundle.js"
+    "dist": "mkdir -p dist && cp -u index.html assets/tiles.jpg dist && browserify src -o dist/bundle.js",
+    "debug": "npm run dist -- -d",
+    "watch": "npm run debug && watchify src -o dist/bundle.js -d --verbose",
+    "live": "browser-sync start --server dist --files dist --no-open",
+    "clean": "rm -rf dist"
   }
 }
