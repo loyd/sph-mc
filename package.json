@@ -36,6 +36,6 @@
     "watch": "npm run debug && watchify src -o dist/bundle.js -d --verbose",
     "live": "browser-sync start --server dist --files dist --no-open",
     "clean": "rm -rf dist",
-    "deploy": "npm run dist && git checkout gh-pages && cp dist/* . && git commit -a -m update; git checkout master"
+    "deploy": "npm run dist && git checkout gh-pages && cp dist/* . && git commit -a -m update && git push; git checkout master"
   }
 }
