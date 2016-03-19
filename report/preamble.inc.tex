@@ -1,0 +1,37 @@
+\sloppy
+
+% Нумерация формул, таблиц и картинок относительно глав.
+\EqInChapter
+\TableInChapter
+\PicInChapter
+
+% Гипертекстовое оглавление.
+\usepackage[
+  bookmarks=true,  colorlinks=true, unicode=true,
+  urlcolor=black,  linkcolor=black, anchorcolor=black,
+  citecolor=black, menucolor=black, filecolor=black,
+]{hyperref}
+
+% Times, если стоит texlive-scalable-cyrfonts.
+\IfFileExists{cyrtimes.sty} {
+  \usepackage{cyrtimes}
+}
+
+\usepackage{graphicx}
+\graphicspath{{assets/}}
+
+% Поля.
+\geometry{right=15mm, top=20mm, bottom=20mm, left=30mm}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.12}
+
+\usepackage{enumerate}
+\usepackage{multirow}
+\usepackage{paralist, array}
+
+% Центрирование подписей.
+\usepackage[justification=centering]{caption}
