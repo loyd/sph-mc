@@ -15351,72 +15351,83 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
-/*
- * Initialization of the simulation.
- */
-var canvas = document.getElementById('area');
-var tiles = document.getElementById('tiles');
-var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+init();
 
-var simulation = new _simulation2.default(gl, { tiles: tiles });
-var gui = new _gui2.default(simulation);
+function init() {
+  var canvas = document.getElementById('area');
+  var tiles = document.getElementById('tiles');
 
-/*
- * Resize handling.
- */
-window.addEventListener('resize', adjustCanvasSize);
-adjustCanvasSize();
+  tiles.complete ? onload() : tiles.onload = onload;
 
-function adjustCanvasSize() {
-  var factor = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(canvas.clientWidth * factor);
-  canvas.height = Math.floor(canvas.clientHeight * factor);
-  simulation.resize();
+  function onload() {
+    var simulation = initSimulation(canvas, tiles);
+    var stats = initStats();
+
+    runSimulation(canvas, simulation, stats);
+  };
 }
 
-/*
- * Statistics initialization.
- */
-var stats = document.getElementById('stats');
+function initSimulation(canvas, tiles) {
+  var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  var simulation = new _simulation2.default(gl, { tiles: tiles });
+  var gui = new _gui2.default(simulation);
 
-stats.appendChild(document.createTextNode((0, _locale2.default)(_templateObject)));
-var logicStats = new _stats2.default();
-stats.appendChild(logicStats.domElement);
+  window.addEventListener('resize', adjustCanvasSize);
+  adjustCanvasSize();
 
-stats.appendChild(document.createTextNode((0, _locale2.default)(_templateObject2)));
-var renderStats = new _stats2.default();
-stats.appendChild(renderStats.domElement);
-
-/*
- * Run the simulation.
- */
-var past = void 0;
-
-requestAnimationFrame(function loop(now) {
-  if (!past) past = now;
-
-  if (!document.hidden) {
-    var delta = now - past;
-
-    if (simulation.realtime) {
-      var amount = delta / (simulation.deltaT * 1000) | 0;
-      now -= delta % (simulation.deltaT * 1000);
-
-      for (var i = 0; i < amount; ++i) {
-        simulation.step();
-        logicStats.update();
-      }
-    } else {
-      simulation.step();
-      logicStats.update();
-    }
-
-    simulation.render();
-    renderStats.update();
+  function adjustCanvasSize() {
+    var factor = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(canvas.clientWidth * factor);
+    canvas.height = Math.floor(canvas.clientHeight * factor);
+    simulation.resize();
   }
 
-  past = now;
-  requestAnimationFrame(loop, canvas);
-}, canvas);
+  return simulation;
+}
+
+function initStats() {
+  var stats = document.getElementById('stats');
+
+  stats.appendChild(document.createTextNode((0, _locale2.default)(_templateObject)));
+  var logic = new _stats2.default();
+  stats.appendChild(logic.domElement);
+
+  stats.appendChild(document.createTextNode((0, _locale2.default)(_templateObject2)));
+  var render = new _stats2.default();
+  stats.appendChild(render.domElement);
+
+  return { logic: logic, render: render };
+}
+
+function runSimulation(canvas, simulation, stats) {
+  var past = void 0;
+
+  requestAnimationFrame(function loop(now) {
+    if (!past) past = now;
+
+    if (!document.hidden) {
+      var delta = now - past;
+
+      if (simulation.realtime) {
+        var amount = delta / (simulation.deltaT * 1000) | 0;
+        now -= delta % (simulation.deltaT * 1000);
+
+        for (var i = 0; i < amount; ++i) {
+          simulation.step();
+          stats.logic.update();
+        }
+      } else {
+        simulation.step();
+        stats.logic.update();
+      }
+
+      simulation.render();
+      stats.render.update();
+    }
+
+    past = now;
+    requestAnimationFrame(loop, canvas);
+  }, canvas);
+}
 
 },{"./gui":47,"./locale":48,"./polyfill":51,"./simulation":52,"stats.js":20}]},{},[54]);
