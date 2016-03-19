@@ -12,6 +12,10 @@ export default class Mouse extends EventEmitter {
     window.addEventListener('mousemove', e => this.onMouseMove(e));
     window.addEventListener('mouseup', e => this.onMouseUp(e));
     observable.addEventListener('wheel', e => this.onMouseWheel(e));
+
+    let bodyStyle = getComputedStyle(observable);
+    this.lineHeight = parseInt(bodyStyle.fontSize, 10);
+    this.pageHeight = parseInt(bodyStyle.height, 10);
   }
 
   onMouseDown(e) {
@@ -43,6 +47,9 @@ export default class Mouse extends EventEmitter {
   }
 
   onMouseWheel(e) {
-    this.emit('wheel', e.deltaY);
+    let deltaY = e.deltaMode === 0 ? e.deltaY
+               : e.deltaMode === 1 ? this.lineHeight * e.deltaY
+                                   : this.pageHeight * e.deltaY;
+    this.emit('wheel', deltaY);
   }
 }
