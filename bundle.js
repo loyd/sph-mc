@@ -14119,20 +14119,22 @@ var VOXELS_TEX_SIZE = exports.VOXELS_TEX_SIZE = VOXEL_XY_TEX_SIZE * VOXEL_Z_TEX_
 var VOXELS_PYRAMID_LVLS = exports.VOXELS_PYRAMID_LVLS = Math.log2(VOXELS_TEX_SIZE);
 var TRIANGLES_TEX_SIZE = exports.TRIANGLES_TEX_SIZE = Math.pow(2, Math.ceil(Math.log2(MAX_TRIANGLES) / 2));
 
-console.group('Limits');
-console.info('Max particles: %f', MAX_PARTICLES);
-console.info('Data tex size: %fx%1$f', DATA_TEX_SIZE);
-console.info('Min ratio: %f', MIN_RATIO);
-console.info('Cells shape: (%f, %1$f, %f)', CELL_XY_TEX_SIZE, Math.pow(CELL_Z_TEX_SIZE, 2));
-console.info('Cells tex size: %fx%1$f', CELLS_TEX_SIZE);
-console.info('Max voxels per side: %f', MAX_VOXELS_PER_SIDE);
-console.info('Voxels shape: (%f, %1$f, %f)', VOXEL_XY_TEX_SIZE, Math.pow(VOXEL_Z_TEX_SIZE, 2));
-console.info('Voxels tex size: %fx%1$f', VOXELS_TEX_SIZE);
-console.info('Histogram pyramid levels: %f', VOXELS_PYRAMID_LVLS);
-console.info('Max triangles: %f', MAX_TRIANGLES);
-console.info('Triangles tex size: %fx%1$f', TRIANGLES_TEX_SIZE);
-console.info('Sphere radius: %f, detail: %f', SPHERE_RADIUS, SPHERE_DETAIL);
-console.groupEnd('Limits');
+if (console && console.group) {
+  console.group('Limits');
+  console.info('Max particles: %f', MAX_PARTICLES);
+  console.info('Data tex size: %fx%1$f', DATA_TEX_SIZE);
+  console.info('Min ratio: %f', MIN_RATIO);
+  console.info('Cells shape: (%f, %1$f, %f)', CELL_XY_TEX_SIZE, Math.pow(CELL_Z_TEX_SIZE, 2));
+  console.info('Cells tex size: %fx%1$f', CELLS_TEX_SIZE);
+  console.info('Max voxels per side: %f', MAX_VOXELS_PER_SIDE);
+  console.info('Voxels shape: (%f, %1$f, %f)', VOXEL_XY_TEX_SIZE, Math.pow(VOXEL_Z_TEX_SIZE, 2));
+  console.info('Voxels tex size: %fx%1$f', VOXELS_TEX_SIZE);
+  console.info('Histogram pyramid levels: %f', VOXELS_PYRAMID_LVLS);
+  console.info('Max triangles: %f', MAX_TRIANGLES);
+  console.info('Triangles tex size: %fx%1$f', TRIANGLES_TEX_SIZE);
+  console.info('Sphere radius: %f, detail: %f', SPHERE_RADIUS, SPHERE_DETAIL);
+  console.groupEnd('Limits');
+}
 
 var Simulation = function () {
   function Simulation(gl, resources) {
@@ -15365,10 +15367,15 @@ function init() {
   tiles.complete ? onload() : tiles.onload = onload;
 
   function onload() {
-    var simulation = initSimulation(canvas, tiles);
-    var stats = initStats();
+    try {
+      var simulation = initSimulation(canvas, tiles);
+      var stats = initStats();
 
-    runSimulation(canvas, simulation, stats);
+      runSimulation(canvas, simulation, stats);
+    } catch (ex) {
+      console && console.error(ex);
+      document.body.innerHTML = 'Sorry, fatal error:<br>' + ex.message;
+    }
   };
 }
 
