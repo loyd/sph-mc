@@ -15,10 +15,15 @@ function init() {
   tiles.complete ? onload() : tiles.onload = onload;
 
   function onload() {
-    let simulation = initSimulation(canvas, tiles);
-    let stats = initStats();
+    try {
+      let simulation = initSimulation(canvas, tiles);
+      let stats = initStats();
 
-    runSimulation(canvas, simulation, stats);
+      runSimulation(canvas, simulation, stats);
+    } catch (ex) {
+      console && console.error(ex);
+      document.body.innerHTML = `Sorry, fatal error:<br>${ex.message}`;
+    }
   };
 }
 
