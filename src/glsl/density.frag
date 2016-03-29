@@ -1,3 +1,5 @@
+#version 300 es
+
 precision highp float;
 precision highp sampler2D;
 
@@ -8,11 +10,12 @@ uniform float mass;
 uniform float ratio2;
 uniform float wDefault;
 
-varying vec2 coord;
+in vec2 coord;
 
+out vec4 fragColor;
 
 void main(void) {
-  vec3 position = texture2D(positions, coord).xyz;
+  vec3 position = texture(positions, coord).xyz;
   vec3 cell = floor(position * nCells) + vec3(1.);
 
   float density = 0.;
@@ -26,7 +29,7 @@ void main(void) {
         vec3 nbCell = cell + vec3(k, j, i);
 
         vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
-        vec4 nbPosition = texture2D(meanPositions, cellCoord);
+        vec4 nbPosition = texture(meanPositions, cellCoord);
 
         if (nbPosition.w < 1.)
           continue;
@@ -37,5 +40,5 @@ void main(void) {
       }
   }
 
-  gl_FragColor = vec4(0., 0., 0., density * mass * wDefault);
+  fragColor = vec4(0., 0., 0., density * mass * wDefault);
 }

@@ -1,12 +1,14 @@
-attribute vec3 aposition;
-attribute vec3 anormal;
-attribute vec2 texCoord;
+#version 300 es
+
+in vec3 aposition;
+in vec3 anormal;
+in vec2 texCoord;
 
 uniform mat4 mvp;
 
-varying vec3 position;
-varying vec3 normal;
-varying vec2 coord;
+out vec3 position;
+out vec3 normal;
+out vec2 coord;
 
 void main(void) {
   position = aposition;

@@ -1,6 +1,8 @@
-attribute vec2 texCoord;
+#version 300 es
 
-varying vec2 coord;
+in vec2 texCoord;
+
+out vec2 coord;
 
 void main(void) {
   coord = texCoord;

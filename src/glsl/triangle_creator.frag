@@ -1,4 +1,5 @@
-#extension GL_EXT_draw_buffers: require
+#version 300 es
+
 precision highp float;
 precision highp sampler2D;
 
@@ -8,18 +9,25 @@ uniform sampler2D potentials;
 uniform sampler2D traversal;
 uniform sampler2D mcCases;
 
-varying float idx;
+flat in float idx;
 
 const float invSize = 1./{{totalSize}};
+
+layout(location = 0) out vec4 outVert0;
+layout(location = 1) out vec4 outVert1;
+layout(location = 2) out vec4 outVert2;
+layout(location = 3) out vec4 outNorm0;
+layout(location = 4) out vec4 outNorm1;
+layout(location = 5) out vec4 outNorm2;
 
 float potential(vec3 cell) {
   vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));
   vec2 coord = invSize * (cell.xy + {{xySize}}*zCoord + vec2(.5));
-  return texture2D(potentials, coord).s;
+  return texture(potentials, coord).s;
 }
 
 void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float mcIdx) {
-  mcIdx = texture2D(mcCases, vec2(mod(index, 64.) + .5, floor(index / 64.) + .5) / 64.).s;
+  mcIdx = texture(mcCases, vec2(mod(index, 64.) + .5, floor(index / 64.) + .5) / 64.).s;
 
   vec4 m0 = vec4(equal(vec4(mcIdx), vec4(0., 1., 2., 3.)));
   vec4 m1 = vec4(equal(vec4(mcIdx), vec4(4., 5., 6., 7.)));
@@ -37,7 +45,8 @@ void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float
   vec2 diff = vec2(isolevel - n0, n1 - n0);
   vec3 mult = vec3(lessThan(abs(vec3(diff.x, isolevel - n1, -diff.y)), vec3(0.)));
 
-  pos = (mult.x + mult.z)*b0 + mult.y*b1 + (1. - dot(mult, mult)) * mix(b0, b1, diff.x/diff.y);
+  float t = abs(diff.y) > 0. ? diff.x / diff.y : 0.5;
+  pos = (mult.x + mult.z)*b0 + mult.y*b1 + (1. - dot(mult, mult)) * mix(b0, b1, t);
   pos = pos*cellSize + vec3(-cellSize);
 
   vec3 norm0 = normalize(vec3(n0) - vec3(potential(b0 + vec3(1., 0., 0.)),
@@ -53,8 +62,8 @@ void triangleData(float index, vec3 cell, out vec3 pos, out vec3 norm, out float
 
 void main(void) {
   float traversalIdx = floor(idx * .25);
-  vec4 data = texture2D(traversal, vec2(mod(traversalIdx, {{totalSize}}) + .5,
-                                        floor(traversalIdx * invSize) + .5) * invSize);
+  vec4 data = texture(traversal, vec2(mod(traversalIdx, {{totalSize}}) + .5,
+                                      floor(traversalIdx * invSize) + .5) * invSize);
   float initIndex = 12. * data.w + 3. * mod(idx, 4.);
 
   float mcIdx = 0.;
@@ -62,14 +71,14 @@ void main(void) {
   vec3 norm = vec3(0.);
 
   triangleData(initIndex, data.xyz, pos, norm, mcIdx);
-  gl_FragData[0] = vec4(pos, mcIdx);
-  gl_FragData[3] = vec4(norm, 1.);
+  outVert0 = vec4(pos, mcIdx);
+  outNorm0 = vec4(norm, 1.);
 
   triangleData(initIndex + 1., data.xyz, pos, norm, mcIdx);
-  gl_FragData[1] = vec4(pos, 1.);
-  gl_FragData[4] = vec4(norm, 1.);
+  outVert1 = vec4(pos, 1.);
+  outNorm1 = vec4(norm, 1.);
 
   triangleData(initIndex + 2., data.xyz, pos, norm, mcIdx);
-  gl_FragData[2] = vec4(pos, 1.);
-  gl_FragData[5] = vec4(norm, 1.);
+  outVert2 = vec4(pos, 1.);
+  outNorm2 = vec4(norm, 1.);
 }

@@ -1,3 +1,5 @@
+#version 300 es
+
 precision mediump float;
 
 uniform vec3 eye;
@@ -6,13 +8,15 @@ uniform float diffuse;
 uniform float specular;
 uniform float shininess;
 uniform float attenuation;
-uniform sampler2D texture;
+uniform sampler2D texMap;
 uniform vec3 color;
 uniform float opacity;
 
-varying vec3 position;
-varying vec3 normal;
-varying vec2 coord;
+in vec3 position;
+in vec3 normal;
+in vec2 coord;
+
+out vec4 fragColor;
 
 const vec3 light = vec3(.5, 1., .5);
 const vec3 gamma = vec3(1./2.2);
@@ -23,7 +27,7 @@ void main(void) {
   float distToLight2 = dot(toLight, toLight);
   toLight = normalize(toLight);
 
-  vec3 base = color + texture2D(texture, coord).rgb;
+  vec3 base = color + texture(texMap, coord).rgb;
 
   float lightProj = dot(norm, toLight);
   vec3 phong = base * diffuse * max(lightProj, 0.);
@@ -34,5 +38,5 @@ void main(void) {
   phong *= 1. / (1. + attenuation * distToLight2);
   phong += vec3(base * ambient);
 
-  gl_FragColor = vec4(pow(phong, gamma), opacity);
+  fragColor = vec4(pow(phong, gamma), opacity);
 }

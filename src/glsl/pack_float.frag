@@ -1,3 +1,5 @@
+#version 300 es
+
 /*
    Since float values can not be read in javascript, this shader packs the value in a unsigned byte
    format. This packing only works on 0 to 1 floating numbers, hence the final sum of the
@@ -13,8 +15,10 @@ uniform sampler2D data;
 // Max cells that could be active in a texture.
 uniform float invMax;
 
+out vec4 fragColor;
+
 void main(void) {
-  vec4 enc = fract(vec4(1., 255., 65025., 160581375.) * texture2D(data, vec2(0.)).s * invMax);
+  vec4 enc = fract(vec4(1., 255., 65025., 160581375.) * texture(data, vec2(0.)).s * invMax);
   enc -= enc.yzww * vec4(vec3(.00392157), 0.);
-  gl_FragColor = enc;
+  fragColor = enc;
 }

@@ -180,11 +180,26 @@ function createBufferFromTypedArray(gl, array, type) {
     return buffer;
 }
 
+function sizedInternalFormat(gl, format, type) {
+  if (format === gl.RGBA) {
+    if (type === gl.FLOAT)          return gl.RGBA32F;
+    if (type === gl.HALF_FLOAT)     return gl.RGBA16F;
+    if (type === gl.UNSIGNED_BYTE)  return gl.RGBA8;
+  }
+  if (format === gl.RGB) {
+    if (type === gl.FLOAT)          return gl.RGB32F;
+    if (type === gl.HALF_FLOAT)     return gl.RGB16F;
+    if (type === gl.UNSIGNED_BYTE)  return gl.RGB8;
+  }
+  return format;
+}
+
 export function createTexture(gl, size, format, filter, type, data = null) {
   let texture = gl.createTexture();
+  let internalFormat = sizedInternalFormat(gl, format, type);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, format, size, size, 0, format, type, data);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, size, size, 0, format, type, data);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -199,9 +214,10 @@ export function createTextureFromImage(gl, format, magFilter, minFilter, image) 
   assert(image.complete);
 
   let texture = gl.createTexture();
+  let internalFormat = sizedInternalFormat(gl, format, gl.UNSIGNED_BYTE);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, gl.UNSIGNED_BYTE, image);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -234,19 +250,19 @@ export function createFramebuffer(gl, texture) {
   return framebuffer;
 }
 
-export function createMRTFramebuffer(gl, mrt, ...textures) {
+export function createMRTFramebuffer(gl, ...textures) {
   let size = textures[0].size;
   assert(textures.every(tex => tex.size === size));
 
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-  let attach = textures.map((_, i) => mrt[`COLOR_ATTACHMENT${i}_WEBGL`]);
+  let attach = textures.map((_, i) => gl[`COLOR_ATTACHMENT${i}`]);
 
   for (let i = 0; i < attach.length; ++i)
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attach[i], gl.TEXTURE_2D, textures[i], 0);
 
-  mrt.drawBuffersWEBGL(attach);
+  gl.drawBuffers(attach);
 
   gl.bindTexture(gl.TEXTURE_2D, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);

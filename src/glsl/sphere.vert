@@ -1,12 +1,14 @@
+#version 300 es
+
 //#TODO: rename this!
-attribute vec3 aposition;
+in vec3 aposition;
 
 uniform vec3 center;
 uniform mat4 vp;
 
-varying vec3 position;
-varying vec3 normal;
-varying vec2 coord;
+out vec3 position;
+out vec3 normal;
+out vec2 coord;
 
 void main(void) {
   position = center + aposition;

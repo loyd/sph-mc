@@ -1,15 +1,17 @@
+#version 300 es
+
 precision highp sampler2D;
 
-attribute vec2 texCoord;
+in vec2 texCoord;
 
 uniform sampler2D positions;
 uniform float nCells;
 
-varying vec2 coord;
+out vec2 coord;
 
 void main(void) {
   coord = texCoord;
-  vec3 position = texture2D(positions, coord).xyz;
+  vec3 position = texture(positions, coord).xyz;
 
   vec3 cell = floor(position * nCells) + vec3(1.);
   vec2 zCoord = vec2(mod(cell.z, {{zSize}}), floor(cell.z / {{zSize}}));

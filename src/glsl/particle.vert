@@ -1,12 +1,14 @@
-attribute mediump vec2 texCoord;
+#version 300 es
+
+in highp vec2 texCoord;
 
 uniform mat4 mvp;
 uniform sampler2D positions;
 
-varying lowp vec4 color;
+out lowp vec4 color;
 
 void main(void) {
-  vec3 position = texture2D(positions, texCoord).xyz;
+  vec3 position = texture(positions, texCoord).xyz;
   color = vec4(1.);
 
   gl_PointSize = 2.;

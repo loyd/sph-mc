@@ -1,7 +1,9 @@
-attribute vec2 texCoord;
-attribute float index;
+#version 300 es
 
-varying float idx;
+in vec2 texCoord;
+in float index;
+
+flat out float idx;
 
 void main(void) {
   idx = index;

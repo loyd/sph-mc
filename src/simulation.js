@@ -116,30 +116,10 @@ export default class Simulation {
 
     this.activeCells = 0;
 
-    this.extensions = this.getExtensions();
     this.programs = this.createPrograms();
     this.buffers = this.createBuffers();
     this.textures = this.createTextures(resources);
     this.framebuffers = this.createFramebuffers();
-  }
-
-  getExtensions() {
-    let float = this.gl.getExtension('OES_texture_float');
-    if (float)
-      float.type = this.gl.FLOAT;
-    else {
-      float = this.gl.getExtension('OES_texture_half_float');
-      if (float)
-        float.type = float.HALF_FLOAT_OES;
-      else
-        throw new Error("OES_texture_float and OES_texture_half_float is not available");
-    }
-
-    let mrt = this.gl.getExtension('WEBGL_draw_buffers');
-    if (!mrt)
-      throw new Error("WEBGL_draw_buffers is not available");
-
-    return {float, mrt};
   }
 
   createPrograms() {
@@ -289,52 +269,41 @@ export default class Simulation {
 
     let gl = this.gl;
     let {RGB, RGBA, UNSIGNED_BYTE, NEAREST, LINEAR, LINEAR_MIPMAP_LINEAR} = gl;
-    let FLOAT = this.extensions.float.type;
 
     return {
-      meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT, positions),
-      _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      activity: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      nodes: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      pyramid: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
+      meanPositions: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      meanVelDens: utils.createTexture(gl, CELLS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, gl.FLOAT, positions),
+      _positions: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      _velDens: utils.createTexture(gl, DATA_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      activity: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      nodes: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      pyramid: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
       pyramidLvls: Array(...Array(VOXELS_PYRAMID_LVLS)).map((_, i) =>
-        utils.createTexture(gl, 1 << i, RGBA, NEAREST, FLOAT)),
+        utils.createTexture(gl, 1 << i, RGBA, NEAREST, gl.FLOAT)),
       totalActive: utils.createTexture(gl, 1, RGBA, NEAREST, UNSIGNED_BYTE),
-      traversal: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, FLOAT),
-      mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, FLOAT, mcCasesTex),
-      vertices: [0, 0, 0].map(_ =>
-        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
-      normals: [0, 0, 0].map(_ =>
-        utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, FLOAT)),
+      traversal: utils.createTexture(gl, VOXELS_TEX_SIZE, RGBA, NEAREST, gl.FLOAT),
+      mcCases: utils.createTexture(gl, 64, RGBA, NEAREST, gl.FLOAT, mcCasesTex),
+      vertices: [0, 0, 0].map(_ => utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, gl.FLOAT)),
+      normals: [0, 0, 0].map(_ => utils.createTexture(gl, TRIANGLES_TEX_SIZE, RGBA, NEAREST, gl.FLOAT)),
       bbox: utils.createTextureFromImage(gl, RGB, LINEAR, LINEAR_MIPMAP_LINEAR, resources.tiles)
     };
   }
 
   createFramebuffers() {
     return {
-      cells: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
-                                        this.textures.meanPositions,
-                                        this.textures.meanVelDens),
+      cells: utils.createMRTFramebuffer(this.gl, this.textures.meanPositions, this.textures.meanVelDens),
       velDens: utils.createFramebuffer(this.gl, this.textures.velDens),
       _velDens: utils.createFramebuffer(this.gl, this.textures._velDens),
-      lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
-                                           this.textures._positions,
-                                           this.textures._velDens),
-      _lagrange: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
-                                            this.textures.positions,
-                                            this.textures.velDens),
+      lagrange: utils.createMRTFramebuffer(this.gl, this.textures._positions, this.textures._velDens),
+      _lagrange: utils.createMRTFramebuffer(this.gl, this.textures.positions, this.textures.velDens),
       activity: utils.createFramebuffer(this.gl, this.textures.activity),
       nodes: utils.createFramebuffer(this.gl, this.textures.nodes),
       pyramidLvls: this.textures.pyramidLvls.map(tex => utils.createFramebuffer(this.gl, tex)),
       totalActive: utils.createFramebuffer(this.gl, this.textures.totalActive),
       traversal: utils.createFramebuffer(this.gl, this.textures.traversal),
-      triangles: utils.createMRTFramebuffer(this.gl, this.extensions.mrt,
-                                            ...this.textures.vertices,
-                                            ...this.textures.normals)
+      triangles: utils.createMRTFramebuffer(this.gl, ...this.textures.vertices, ...this.textures.normals)
     };
   }
 
@@ -344,14 +313,13 @@ export default class Simulation {
 
   restart() {
     let {gl} = this;
-    let FLOAT = this.extensions.float.type;
 
     let nParticles = this.wait.nParticles;
     let width = this.textures.positions.size;
     let height = Math.ceil(nParticles / width);
     let positions = new Float32Array(4 * width * height);
 
-    utils.fillTexture(gl, this.textures.velDens, gl.RGBA, FLOAT, positions);
+    utils.fillTexture(gl, this.textures.velDens, gl.RGBA, gl.FLOAT, positions);
 
     let volume = Math.pow(this.mass * nParticles / this.density0, 1/3);
     for (let i = 0, n = 4 * nParticles; i < n; i += 4) {
@@ -360,7 +328,7 @@ export default class Simulation {
       positions[i+2] = Math.random() * volume;
     }
 
-    utils.fillTexture(gl, this.textures.positions, gl.RGBA, FLOAT, positions);
+    utils.fillTexture(gl, this.textures.positions, gl.RGBA, gl.FLOAT, positions);
     this.nParticles = nParticles;
 
     if (this.paused && this.mode !== 'wireframe')
@@ -556,7 +524,7 @@ export default class Simulation {
       shininess: 20,
       color: [.39, .24, .02],
       opacity: 1,
-      texture: null
+      texMap: null
     });
 
     utils.setBuffersAndAttributes(this.gl, program, buffer);
@@ -591,7 +559,7 @@ export default class Simulation {
       specular: .35,
       shininess: 80,
       attenuation: this.attenuation,
-      texture: this.textures.bbox,
+      texMap: this.textures.bbox,
       opacity: 1.
     });
     utils.setBuffersAndAttributes(this.gl, program, buffer);
@@ -633,7 +601,7 @@ export default class Simulation {
       attenuation: this.attenuation,
       color: this.color,
       opacity: this.opacity,
-      texture: null
+      texMap: null
     });
 
     gl.enable(gl.BLEND);

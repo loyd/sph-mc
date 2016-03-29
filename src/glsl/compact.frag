@@ -1,11 +1,15 @@
-precision mediump float;
-precision mediump sampler2D;
+#version 300 es
+
+precision highp float;
+precision highp sampler2D;
 
 uniform sampler2D base;
 //#TODO: what about array of levels?
 uniform sampler2D pyramid;
 
-varying float idx;
+flat in float idx;
+
+out vec4 fragColor;
 
 const float invSize = 1./{{totalSize}};
 
@@ -21,16 +25,16 @@ void main(void) {
   for (int i = 1; i < int({{pyramidLvls}}); ++i) {
     offset -= pow(2., float(i));
     relPos = pos + invSize * vec2(offset, 0.);
-    end = start + texture2D(pyramid, relPos).r;
+    end = start + texture(pyramid, relPos).r;
     vec2 pos1 = relPos;
     starts.x= start;
     ends.x = end;
     vec2 pos2 = relPos + vec2(invSize, 0.);
     starts.y = ends.x;
-    ends.y = ends.x + texture2D(pyramid, pos2).r;
+    ends.y = ends.x + texture(pyramid, pos2).r;
     vec2 pos3 = relPos + vec2(0., invSize);
     starts.z = ends.y;
-    ends.z = ends.y + texture2D(pyramid, pos3).r;
+    ends.z = ends.y + texture(pyramid, pos3).r;
     vec2 pos4 = relPos + vec2(invSize, invSize);
     starts.w = ends.z;
     vec3 mask = vec3(greaterThanEqual(vec3(idx), starts.rgb)) * vec3(lessThan(vec3(idx), ends));
@@ -41,16 +45,16 @@ void main(void) {
     pos *= 2.;
   }
 
-  end = start + texture2D(base, pos).r;
+  end = start + texture(base, pos).r;
   vec2 pos1 = pos;
   starts.x= start;
   ends.x = end;
   vec2 pos2 = pos + vec2(invSize, 0.);
   starts.y = ends.x;
-  ends.y = ends.x + texture2D(base, pos2).r;
+  ends.y = ends.x + texture(base, pos2).r;
   vec2 pos3 = pos + vec2(0., invSize);
   starts.z = ends.y;
-  ends.z = ends.y + texture2D(base, pos3).r;
+  ends.z = ends.y + texture(base, pos3).r;
   vec2 pos4 = pos + vec2(invSize, invSize);
   starts.w = ends.z;
   vec3 mask = vec3(greaterThanEqual(vec3(idx), starts.rgb)) * vec3(lessThan(vec3(idx), ends));
@@ -58,7 +62,7 @@ void main(void) {
   pos = m.x * pos1 + m.y * pos2 + m.z * pos3 + m.w * pos4;
   vec2 index = pos * {{totalSize}};
 
-  gl_FragColor = vec4(vec3(mod(index, {{xySize}}),
-                           dot(floor(index / {{xySize}}), vec2(1., {{zSize}}))),
-                      texture2D(base, pos).a);
+  fragColor = vec4(vec3(mod(index, {{xySize}}),
+                        dot(floor(index / {{xySize}}), vec2(1., {{zSize}}))),
+                   texture(base, pos).a);
 }

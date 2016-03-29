@@ -1,4 +1,5 @@
-#extension GL_EXT_draw_buffers: require
+#version 300 es
+
 precision highp float;
 precision highp sampler2D;
 
@@ -24,7 +25,10 @@ uniform float wViscosity;
 uniform float wTension;
 uniform vec3 sphereCenter;
 
-varying vec2 coord;
+in vec2 coord;
+
+layout(location = 0) out vec4 outPosition;
+layout(location = 1) out vec4 outVelocity;
 
 const vec3 boxCenter = vec3(.5, .5, .5);
 const vec3 boxSize = vec3(.5, .5, .5);
@@ -32,9 +36,9 @@ const float sphereRadius = {{sphereRadius}};
 const float sphereRadius2 = sphereRadius * sphereRadius;
 
 void main(void) {
-  vec3 position = texture2D(positions, coord).xyz;
+  vec3 position = texture(positions, coord).xyz;
   vec3 cell = floor(position * nCells) + vec3(1.);
-  vec4 piece = texture2D(velDens, coord);
+  vec4 piece = texture(velDens, coord);
   vec3 velocity = piece.xyz;
   float density = piece.w;
 
@@ -54,7 +58,7 @@ void main(void) {
         vec3 nbCell = cell + vec3(k, j, i);
 
         vec2 cellCoord = (nbCell.xy + {{xySize}}*zCoord + vec2(.5))/{{totalSize}};
-        piece = texture2D(meanPositions, cellCoord);
+        piece = texture(meanPositions, cellCoord);
         float nbCount = piece.w;
 
         if (nbCount < 1.)
@@ -68,7 +72,7 @@ void main(void) {
         if (distance >= ratio)
           continue;
 
-        piece = texture2D(meanVelDens, cellCoord) * invNbCount;
+        piece = texture(meanVelDens, cellCoord) * invNbCount;
         vec3 nbVelocity = piece.xyz;
         float nbDensity = piece.w;
         float nbCountPerDensity = nbCount / nbDensity;
@@ -132,6 +136,6 @@ void main(void) {
     velocity -= (1. + restitution * correction) * dot(velocity, normal) * normal;
   }
 
-  gl_FragData[0] = vec4(position, 0.);
-  gl_FragData[1] = vec4(velocity, 0.);
+  outPosition = vec4(position, 0.);
+  outVelocity = vec4(velocity, 0.);
 }

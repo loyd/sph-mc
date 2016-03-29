@@ -28,7 +28,16 @@ function init() {
 }
 
 function initSimulation(canvas, tiles) {
-  let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  let gl = canvas.getContext('webgl2');
+
+  // Required for RGBA32F framebuffer attachments (color-renderable float textures).
+  if (!gl.getExtension('EXT_color_buffer_float'))
+    throw new Error('EXT_color_buffer_float is not supported');
+
+  // Required for gl.BLEND on float framebuffer attachments.
+  if (!gl.getExtension('EXT_float_blend'))
+    throw new Error('EXT_float_blend is not supported');
+
   let simulation = new Simulation(gl, {tiles});
   let gui = new GUI(simulation);
 

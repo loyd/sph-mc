@@ -1,5 +1,7 @@
-precision mediump float;
-precision mediump sampler2D;
+#version 300 es
+
+precision highp float;
+precision highp sampler2D;
 
 uniform sampler2D nodes;
 uniform float isolevel;
@@ -12,19 +14,21 @@ vec2 addZ(vec2 cell2D) {
   return vec2(x, cell2D.y + dZ * step(x, dZ));
 }
 
+out vec4 fragColor;
+
 void main(void) {
   vec2 cell2D = gl_FragCoord.xy * dXY;
 
-  float case = step(texture2D(nodes, cell2D).s, isolevel)
-      +   2. * step(texture2D(nodes, cell2D + vec2(dXY, 0.)).s, isolevel)
-      +   4. * step(texture2D(nodes, cell2D + vec2(dXY, dXY)).s, isolevel)
-      +   8. * step(texture2D(nodes, cell2D + vec2(0., dXY)).s, isolevel)
-      +  16. * step(texture2D(nodes, addZ(cell2D + vec2(0., 0.))).s, isolevel)
-      +  32. * step(texture2D(nodes, addZ(cell2D + vec2(dXY, 0.))).s, isolevel)
-      +  64. * step(texture2D(nodes, addZ(cell2D + vec2(dXY, dXY))).s, isolevel)
-      + 128. * step(texture2D(nodes, addZ(cell2D + vec2(0., dXY))).s, isolevel);
+  float mcCase = step(texture(nodes, cell2D).s, isolevel)
+        +   2. * step(texture(nodes, cell2D + vec2(dXY, 0.)).s, isolevel)
+        +   4. * step(texture(nodes, cell2D + vec2(dXY, dXY)).s, isolevel)
+        +   8. * step(texture(nodes, cell2D + vec2(0., dXY)).s, isolevel)
+        +  16. * step(texture(nodes, addZ(cell2D + vec2(0., 0.))).s, isolevel)
+        +  32. * step(texture(nodes, addZ(cell2D + vec2(dXY, 0.))).s, isolevel)
+        +  64. * step(texture(nodes, addZ(cell2D + vec2(dXY, dXY))).s, isolevel)
+        + 128. * step(texture(nodes, addZ(cell2D + vec2(0., dXY))).s, isolevel);
 
-  case *= step(case, 254.);
+  mcCase *= step(mcCase, 254.);
 
-  gl_FragColor = vec4(step(-case, -.5), 0., 0., case);
+  fragColor = vec4(step(-mcCase, -.5), 0., 0., mcCase);
 }

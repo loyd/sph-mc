@@ -1,13 +1,17 @@
-#extension GL_EXT_draw_buffers: require
+#version 300 es
+
 precision highp float;
 precision highp sampler2D;
 
 uniform sampler2D positions;
 uniform sampler2D velDens;
 
-varying vec2 coord;
+in vec2 coord;
+
+layout(location = 0) out vec4 outData0;
+layout(location = 1) out vec4 outData1;
 
 void main(void) {
-  gl_FragData[0] = vec4(texture2D(positions, coord).xyz, 1.);
-  gl_FragData[1] = vec4(texture2D(velDens, coord).xyz, 0.);
+  outData0 = vec4(texture(positions, coord).xyz, 1.);
+  outData1 = vec4(texture(velDens, coord).xyz, 0.);
 }
