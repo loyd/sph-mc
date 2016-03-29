@@ -9,12 +9,12 @@ export default class Camera {
     this.fov = Math.PI/4;
     this.aspect = 16/9;
     this.dist = 2;
-    this.curZoom = 1;
-    this.minZoom = .5;
+    this.curZoom = .7;
+    this.minZoom = .3;
     this.maxZoom = 5;
     this.near = 0.01;
     this.far = 100;
-    this.speed = Math.PI/1000;
+    this.speed = Math.PI/3000;
 
     this.eye = vec3.create();
     this.position = vec3.create();
@@ -36,7 +36,7 @@ export default class Camera {
   }
 
   zoom(dw) {
-    let newZoom = this.curZoom * (1 + dw * this.speed);
+    let newZoom = this.curZoom * (1 - dw * this.speed);
     this.curZoom = Math.max(this.minZoom, Math.min(newZoom, this.maxZoom));
     this.update();
   }
