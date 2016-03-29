@@ -341,8 +341,9 @@ export default class Simulation {
   }
 
   isOverSphere() {
-    let mx = (this.mouse.cursor.x / this.gl.drawingBufferWidth) * 2 - 1;
-    let my = -(this.mouse.cursor.y / this.gl.drawingBufferHeight) * 2 + 1;
+    let mx = (this.mouse.cursor.x / this.gl.canvas.clientWidth) * 2 - 1;
+    let my = -(this.mouse.cursor.y / this.gl.canvas.clientHeight) * 2 + 1;
+
     let [cx, cy] = vec3.transformMat4(vec3.create(), this.sphere.center, this.camera.matrix);
 
     if (this.mode === 'dual')
@@ -356,8 +357,8 @@ export default class Simulation {
   }
 
   moveSphere(dx, dy) {
-    let delta = [(dx / this.gl.drawingBufferWidth) * 2,
-                 -(dy / this.gl.drawingBufferHeight) * 2];
+    let delta = [(dx / this.gl.canvas.clientWidth) * 2,
+                 -(dy / this.gl.canvas.clientHeight) * 2];
 
     let origin = vec3.fromValues(0, 0, 0);
     let [xAxis, zAxis] = [vec3.fromValues(1, 0, 0), vec3.fromValues(0, 0, 1)];
