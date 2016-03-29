@@ -84,7 +84,7 @@ export default class Simulation {
     this.nParticles = 50000;
     this.mass = .007;
     this.ratio = .0457;
-    this.mode = 'mockup';
+    this.mode = 'dual';
 
     this.spread = 3;
     this.nVoxels = 40;
